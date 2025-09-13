@@ -1,4 +1,4 @@
-# ECS
+# RECS (Ryan's Entity Component System)
 
 > Note that this library is still a work-in-progress, so expect breaking changes to be introduced in future updates until I consider this library stable.
 
