@@ -29,6 +29,10 @@ enum component {
   COMPONENT_NUMBER   //associated with 'struct number_component'
 };
 
+enum tag {
+  TAG_A,
+  TAG_B
+};
 
 //define our systems
 void system_print_message(struct ecs *ecs, void *context) {
@@ -50,6 +54,14 @@ void system_print_message(struct ecs *ecs, void *context) {
       struct number_component *m = (struct number_component *)ecs_entity_get_component(ecs, e, COMPONENT_NUMBER);
       printf("Number: %llu\n", m->num);
     }
+
+    const char *has_tag_a_str = ecs_entity_has_tag(ecs, e, TAG_A) ? "true" : "false";
+    const char *has_tag_b_str = ecs_entity_has_tag(ecs, e, TAG_B) ? "true" : "false";
+
+    printf("Has Tag A = %s\n", has_tag_a_str);
+    printf("Has Tag B = %s\n", has_tag_b_str);
+
+
   }
 }
 
@@ -124,10 +136,17 @@ int main(void) {
 
 
   entity c = entity_factory_a(&ecs, 3, "Again");
+  ecs_entity_add_tag(&ecs, c, TAG_A);
+  ecs_entity_add_tag(&ecs, c, TAG_B);
+
   run_update(&ecs);
 
 
   ecs_entity_remove_component(&ecs, c, COMPONENT_MESSAGE);
+  run_update(&ecs);
+
+  ecs_entity_remove_tag(&ecs, c, TAG_A);
+
   run_update(&ecs);
 
 
