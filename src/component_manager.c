@@ -16,27 +16,23 @@ int component_pool_init(struct component_pool *ca, uint32_t component_size, uint
   //allocate buffer
   size_t comp_buffer_size = component_size * max_components;
   size_t ent_to_comp_buffer_size = sizeof(uint32_t) * max_entities;
+  size_t comp_to_ent_buffer_size = sizeof(uint32_t) * max_entities;
 
-  char *comp_buffer = MALLOC(comp_buffer_size);
-  if(comp_buffer == NULL) {
-    return 0;
-  }
-  uint32_t *ent_to_comp_buffer = MALLOC(ent_to_comp_buffer_size);
-  if(ent_to_comp_buffer == NULL) {
-    FREE(comp_buffer);
-    return 0;
-  }
 
-  uint32_t *comp_to_ent_buffer = MALLOC(ent_to_comp_buffer_size);
-  if(comp_to_ent_buffer == NULL) {
-    FREE(comp_buffer);
-    FREE(ent_to_comp_buffer);
+  //allocate all memory at once needed to store raw component data,
+  //entity to component mapper, and component to entity mapper.
+  char *buffer = MALLOC(comp_buffer_size + ent_to_comp_buffer_size + comp_to_ent_buffer_size);
+  if(buffer == NULL) {
     return 0;
   }
+  char *comp_buffer = buffer;
+  char *ent_to_comp_buffer = buffer + comp_buffer_size;
+  char *comp_to_ent_buffer = ent_to_comp_buffer + ent_to_comp_buffer_size;
+
 
   ca->buffer = comp_buffer;
-  ca->entity_to_comp = ent_to_comp_buffer;
-  ca->comp_to_entity = comp_to_ent_buffer;
+  ca->entity_to_comp = (uint32_t*)ent_to_comp_buffer;
+  ca->comp_to_entity = (uint32_t*)comp_to_ent_buffer;
 
   //mark all components as not belonging to any entity. 
   //Because this game will never get to a point where there are 65000 entities or
@@ -108,8 +104,10 @@ void component_pool_remove(struct component_pool *ca, entity e) {
 }
 
 void component_pool_free(struct component_pool *ca) {
+  //remember we made 1 big allocation starting at ca->buffer,
+  //so we only need to free that one buffer.
   FREE(ca->buffer);
-  FREE(ca->comp_to_entity);
-  FREE(ca->entity_to_comp);
+  //FREE(ca->comp_to_entity);
+  //FREE(ca->entity_to_comp);
 }
 
