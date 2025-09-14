@@ -7,6 +7,8 @@
 
 #include "def.h"
 
+#define NO_COMP_ID NO_ENTITY_ID
+
 
 int component_pool_init(struct component_pool *ca, uint32_t component_size, uint32_t max_components, uint32_t max_entities) {
   ca->num_components = 0;
@@ -16,7 +18,10 @@ int component_pool_init(struct component_pool *ca, uint32_t component_size, uint
   //allocate buffer
   size_t comp_buffer_size = component_size * max_components;
   size_t ent_to_comp_buffer_size = sizeof(uint32_t) * max_entities;
-  size_t comp_to_ent_buffer_size = sizeof(uint32_t) * max_entities;
+
+  //only allocate to max_components since that is usually equal to 
+  //or less than the max_entities, making memory storage slightly more efficient.
+  size_t comp_to_ent_buffer_size = sizeof(entity) * max_components;
 
 
   //allocate all memory at once needed to store raw component data,
@@ -41,8 +46,10 @@ int component_pool_init(struct component_pool *ca, uint32_t component_size, uint
 
   for(uint32_t i = 0; i < ca->max_components; i++) {
     ca->comp_to_entity[i] = NO_ENTITY_ID;
-    ca->entity_to_comp[i] = NO_ENTITY_ID;
+  }
 
+  for(uint32_t i = 0; i < max_entities; i++) {
+    ca->entity_to_comp[i] = NO_COMP_ID;
   }
   
   return 1;
@@ -52,16 +59,12 @@ void *component_pool_get(struct component_pool *ca, entity e) {
   
   uint32_t component_index = ca->entity_to_comp[e];
 
-  if(component_index == NO_ENTITY_ID) {
+  if(component_index == NO_COMP_ID) {
     return NULL;
   }
   return ca->buffer + (ca->component_size * component_index);
 }
 
-void component_pool_copy(struct component_pool *ca, entity e, void *component) {
-  uint32_t component_index = ca->entity_to_comp[e];
-  memcpy(component, ca->buffer + (ca->component_size * component_index), ca->component_size);
-}
 
 void component_pool_add(struct component_pool *ca, entity e, void *component) {
   uint32_t component_index = ca->num_components;
@@ -78,14 +81,17 @@ void component_pool_add(struct component_pool *ca, entity e, void *component) {
 void component_pool_remove(struct component_pool *ca, entity e) {
   uint32_t component_index = ca->entity_to_comp[e];
 
-  if(component_index == NO_ENTITY_ID) {
+  if(component_index == NO_COMP_ID) {
     return;
   }
   uint32_t last_component_index = ca->num_components-1;
   entity entity_at_last_component = ca->comp_to_entity[last_component_index];
 
 
-  //move last element to component being removed
+  //move last element to component being removed.
+  //this keeps our list of components contiguous.
+  //NOTE: Whether this has any performance benefits over allowing
+  //our component pool buffer to be sparse is not tested.
   memcpy(
     ca->buffer + (ca->component_size * component_index),
     ca->buffer + (ca->component_size * last_component_index),
@@ -96,7 +102,7 @@ void component_pool_remove(struct component_pool *ca, entity e) {
   ca->entity_to_comp[entity_at_last_component] = component_index;
 
   ca->comp_to_entity[last_component_index] = e;
-  ca->entity_to_comp[e] = NO_ENTITY_ID;
+  ca->entity_to_comp[e] = NO_COMP_ID;
 
   ca->num_components--;
 

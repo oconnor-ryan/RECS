@@ -50,7 +50,7 @@ By organizing your game objects and their behaviors this way, you can easily add
 ## Sample Usage
 
 
-```
+```c
 #include <stdio.h>
 
 // can define own MALLOC, FREE, and ASSERT macros before including ecs.h
@@ -118,6 +118,11 @@ int main(void) {
     return 1;
   }
 
+  /*
+    After we initialize our ECS, we SHOULD register all component types and systems BEFORE
+    adding entities. This is done to check for any memory allocation errors while
+    setting up component pools as well as ensure that our ECS is ready to add any desired component type.
+  */
 
   // register components
   // note that registration can fail if we cannot allocate enough memory to store our

@@ -53,6 +53,35 @@ void system_print_message(struct ecs *ecs, void *context) {
   }
 }
 
+entity entity_factory_a(struct ecs *ecs, uint64_t num, char message[25]) {
+  struct number_component n = {
+    .num = num
+  };
+  struct message_component m;
+
+  for(uint32_t i = 0; i < 25; i++) {
+    m.message[i] = message[i];
+  }
+
+  entity e = ecs_entity_add(ecs);
+
+  ecs_entity_add_component(ecs, e, COMPONENT_MESSAGE, &m);
+  ecs_entity_add_component(ecs, e, COMPONENT_NUMBER, &n);
+
+  return e;
+}
+
+void run_update(struct ecs *ecs) {
+  static uint32_t num_updates = 1;
+
+  printf("Run System %d: \n===================\n", num_updates);
+  //run all systems tagged with system type UPDATE
+  ecs_system_run_all_with_type(ecs, ECS_SYSTEM_TYPE_UPDATE);
+  printf("===================\nEnd System %d \n\n", num_updates);
+
+  num_updates++;
+}
+
 int main(void) {
 
   //attempt to allocate and initialize our ECS
@@ -81,20 +110,26 @@ int main(void) {
 
 
   //initialize an entity and attach its components.
-  entity e = ecs_entity_add(&ecs);
-  struct message_component m = {
-    .message = "Hi there"
-  };
-  ecs_entity_add_component(&ecs, e, COMPONENT_MESSAGE, &m);
+  entity a = entity_factory_a(&ecs, 1, "Hi");
+  entity b = entity_factory_a(&ecs, 2, "There");
+  run_update(&ecs);
+  
 
-  struct number_component n = {
-    .num = 5
-  };
-  ecs_entity_add_component(&ecs, e, COMPONENT_NUMBER, &n);
+  ecs_entity_remove(&ecs, a);
+  run_update(&ecs);
 
 
-  //run all systems tagged with system type UPDATE
-  ecs_system_run_all_with_type(&ecs, ECS_SYSTEM_TYPE_UPDATE);
+  ecs_entity_remove(&ecs, b);
+  run_update(&ecs);
+
+
+  entity c = entity_factory_a(&ecs, 3, "Again");
+  run_update(&ecs);
+
+
+  ecs_entity_remove_component(&ecs, c, COMPONENT_MESSAGE);
+  run_update(&ecs);
+
 
   //ecs needs to be freed once it is no longer needed.
   ecs_free(&ecs);
