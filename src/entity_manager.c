@@ -37,26 +37,18 @@
 
 */
 
-int entity_manager_init(struct entity_manager *em, uint32_t max_entities) {
+void entity_manager_init(struct entity_manager *em, entity *buffer, uint32_t max_entities) {
   em->num_active_entities = 0;
   em->max_entities = max_entities;
-
-  em->set_of_ids = MALLOC(sizeof(entity) * em->max_entities);
-  if(em->set_of_ids == NULL) {
-    return 0;
-  }
+  em->set_of_ids = buffer;
 
   //add initial entity IDs to set. 
   for(entity i = 0; i < em->max_entities; i++) {
     em->set_of_ids[i] = i;
   }
 
-  return 1;
 }
 
-void entity_manager_free(struct entity_manager *em) {
-  FREE(em->set_of_ids);
-}
 
 entity entity_manager_add(struct entity_manager *em) {
   ASSERT(em->num_active_entities < em->max_entities);

@@ -98,7 +98,7 @@ int main(void) {
 
   //attempt to allocate and initialize our ECS
   struct ecs ecs;
-  int init_success = ecs_init(&ecs, 10, 10, 10, 10);
+  int init_success = ecs_init(&ecs, 2, 2, 2, 2);
 
   //will fail if we fail to allocate enough memory for the ECS.
   if(!init_success) {

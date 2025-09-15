@@ -18,8 +18,8 @@ add_library(${ECS} STATIC
   src/component_manager.c
   src/ecs.c
   src/entity_manager.c
-  src/util/bitset.c
   src/util/stack.c
+  src/bitmask_handler.c
 )
 
 #-Werror was removed

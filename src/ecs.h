@@ -5,7 +5,9 @@
 
 #include "entity_manager.h"
 
-#include "util/bitset.h"
+#include "bitmask_handler.h"
+
+#include <stddef.h>
 
 typedef uint32_t tag_id;
 
@@ -32,6 +34,8 @@ struct ecs_system {
 };
 
 
+
+
 struct ecs {
   struct component_pool *component_type_stores;
 
@@ -43,14 +47,10 @@ struct ecs {
   uint32_t max_tags;
   uint32_t max_systems;
 
+  void *buffer;
 
   //used to know what components each entity has
-  //TODO: The uint64_t assumes that only 64 possible component types can be made.
-  // if there are more components in the future, use a larger number.
-  // implement a bitfield handler
-  //uint64_t entity_component_bitmask[MAX_ENTITIES];
-  struct bitset *entity_component_bitmask;
-  void *bitmask_byte_buffer;
+  struct comp_bitmask_list comp_bitmasks;
 
   struct ecs_system *systems;
 

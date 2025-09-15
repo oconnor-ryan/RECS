@@ -16,8 +16,7 @@ struct entity_manager {
 
 
 
-int entity_manager_init(struct entity_manager *em, uint32_t max_entities);
-void entity_manager_free(struct entity_manager *em);
+void entity_manager_init(struct entity_manager *em, entity *buffer, uint32_t max_entities);
 
 entity entity_manager_add(struct entity_manager *em);
 

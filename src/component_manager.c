@@ -67,6 +67,8 @@ void *component_pool_get(struct component_pool *ca, entity e) {
 
 
 void component_pool_add(struct component_pool *ca, entity e, void *component) {
+  ASSERT(ca->num_components < ca->max_components);
+  
   uint32_t component_index = ca->num_components;
 
   memcpy(ca->buffer + (ca->component_size * component_index), component, ca->component_size);
