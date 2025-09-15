@@ -1,17 +1,56 @@
-#include "ecs.h"
+#include "recs.h"
 
-#include "def.h"
+#include "ecs/bitmask_handler.h"
+#include "ecs/component_manager.h"
+#include "ecs/entity_manager.h"
 
+
+
+struct recs_system {
+  recs_system_func func;
+  void *context;
+  enum recs_system_type type;
+};
+
+struct recs {
+  struct component_pool *component_type_stores;
+
+  uint32_t num_registered_components;
+  uint32_t num_registered_systems;
+
+  uint32_t max_component_types;
+  uint32_t max_tags;
+  uint32_t max_systems;
+
+  //used to know what components each entity has
+  struct comp_bitmask_list comp_bitmasks;
+
+  struct recs_system *systems;
+
+  struct entity_manager ent_man;
+
+};
 
 //all tags appear AFTER the component_types with data.
-static inline uint32_t ecs_tag_id_to_comp_id(struct ecs *ecs, tag_id t) {
+static inline uint32_t recs_tag_id_to_comp_id(struct recs *ecs, tag_id t) {
   uint32_t id = t + ecs->max_component_types;
   RECS_ASSERT(id < ecs->max_tags + ecs->max_component_types);
   return id;
 }
 
 
-int ecs_init(struct ecs *ecs, uint32_t max_entities, uint32_t max_component_types, uint32_t max_tags, uint32_t max_systems) {
+
+uint32_t recs_num_active_entities(struct recs *recs) {
+  return recs->ent_man.num_active_entities;
+}
+
+uint32_t recs_max_entities(struct recs *recs) {
+  return recs->ent_man.max_entities;
+}
+
+
+recs recs_init(uint32_t max_entities, uint32_t max_component_types, uint32_t max_tags, uint32_t max_systems) {
+
   uint32_t max_comps = max_component_types + max_tags;
 
   //RECS_ASSERT that max_comps does not overflow
@@ -22,15 +61,11 @@ int ecs_init(struct ecs *ecs, uint32_t max_entities, uint32_t max_component_type
   RECS_ASSERT(max_entities != NO_ENTITY_ID);
 
 
-  ecs->max_systems = max_systems;
-  ecs->max_component_types = max_component_types;
-  ecs->max_tags = max_tags;
 
-  ecs->num_registered_components = 0;
-  ecs->num_registered_systems = 0;
 
 
   //get sizes needed for each buffer
+  size_t recs_buffer_size = sizeof(struct recs);
   size_t entity_buffer_size = sizeof(entity) * max_entities;
 
   //note that size includes padding so that each bitset is byte-addressable.
@@ -39,22 +74,29 @@ int ecs_init(struct ecs *ecs, uint32_t max_entities, uint32_t max_component_type
   size_t size_per_bitmask = 1 + ((max_comps) / 8);
   size_t bitmask_list_buffer_size = max_entities * size_per_bitmask;
   size_t component_pool_list_size = max_component_types * sizeof(struct component_pool);
-  size_t system_buffer_size = ecs->max_systems * sizeof(struct ecs_system);
+  size_t system_buffer_size = max_systems * sizeof(struct recs_system);
 
   //allocate one big buffer that will store nearly all of the ECS's dynamically allocated data.
-  uint8_t *big_buffer = RECS_MALLOC(entity_buffer_size + bitmask_list_buffer_size + component_pool_list_size + system_buffer_size);
+  uint8_t *big_buffer = RECS_MALLOC(recs_buffer_size + entity_buffer_size + bitmask_list_buffer_size + component_pool_list_size + system_buffer_size);
   if(big_buffer == NULL) {
-    return 0;
+    return NULL;
   }
 
-  uint8_t *entity_buffer =         big_buffer;
-  uint8_t *bitmask_buffer =        big_buffer + entity_buffer_size;
-  uint8_t *component_pool_buffer = big_buffer + entity_buffer_size + bitmask_list_buffer_size;
-  uint8_t *system_buffer =         big_buffer + entity_buffer_size + bitmask_list_buffer_size + component_pool_list_size;
+  recs ecs = (recs) big_buffer;
+  uint8_t *entity_buffer =         big_buffer + recs_buffer_size;
+  uint8_t *bitmask_buffer =        big_buffer + recs_buffer_size + entity_buffer_size;
+  uint8_t *component_pool_buffer = big_buffer + recs_buffer_size + entity_buffer_size + bitmask_list_buffer_size;
+  uint8_t *system_buffer =         big_buffer + recs_buffer_size + entity_buffer_size + bitmask_list_buffer_size + component_pool_list_size;
 
 
   //assign all buffers to appropriate parts of ECS.
-  ecs->buffer = big_buffer; //makes it easier to deallocate since we know where our RECS_MALLOCED memory starts
+
+  ecs->max_systems = max_systems;
+  ecs->max_component_types = max_component_types;
+  ecs->max_tags = max_tags;
+
+  ecs->num_registered_components = 0;
+  ecs->num_registered_systems = 0;
 
   entity_manager_init(&ecs->ent_man, (entity*)entity_buffer, max_entities);
 
@@ -62,13 +104,16 @@ int ecs_init(struct ecs *ecs, uint32_t max_entities, uint32_t max_component_type
   comp_bitmask_list_clear(&ecs->comp_bitmasks, 0);
 
   ecs->component_type_stores = (struct component_pool*)component_pool_buffer;
-  ecs->systems = (struct ecs_system*)system_buffer;
+  ecs->systems = (struct recs_system*)system_buffer;
 
-  return 1;
+  return ecs;
   
 }
 
-void ecs_free(struct ecs *ecs) {
+void recs_free(struct recs *ecs) {
+  if(ecs == NULL) {
+    return;
+  }
 
   //make sure to free individual component pools before freeing the rest
   //of the ECS buffer
@@ -81,12 +126,12 @@ void ecs_free(struct ecs *ecs) {
 
 
   //remember that we made 1 BIG allocation to store most data
-  RECS_FREE(ecs->buffer);
+  RECS_FREE(ecs);
 
   
 }
 
-int ecs_component_register(struct ecs *ecs, component_type type, uint32_t max_components, size_t comp_size) {
+int recs_component_register(struct recs *ecs, component_type type, uint32_t max_components, size_t comp_size) {
   RECS_ASSERT(comp_size > 0);
   RECS_ASSERT(ecs->num_registered_components < ecs->max_component_types);
 
@@ -107,9 +152,10 @@ int ecs_component_register(struct ecs *ecs, component_type type, uint32_t max_co
 
 
 
-void ecs_system_register(struct ecs *ecs, ecs_system_func func, void *context, enum ecs_system_type type) {
+void recs_system_register(struct recs *ecs, recs_system_func func, void *context, enum recs_system_type type) {
+  RECS_ASSERT(ecs->num_registered_systems < ecs->max_systems);
 
-  struct ecs_system *s = ecs->systems + ecs->num_registered_systems;
+  struct recs_system *s = ecs->systems + ecs->num_registered_systems;
   s->context = context;
   s->func = func;
   s->type = type;
@@ -118,28 +164,28 @@ void ecs_system_register(struct ecs *ecs, ecs_system_func func, void *context, e
   
 }
 
-void ecs_system_set_context(struct ecs *ecs, uint32_t system_index, void *context) {
+void recs_system_set_context(struct recs *ecs, uint32_t system_index, void *context) {
   ecs->systems[system_index].context = context;
 }
 
-void ecs_system_run(struct ecs *ecs, uint32_t system_index) {
+void recs_system_run(struct recs *ecs, uint32_t system_index) {
   ecs->systems[system_index].func(ecs, ecs->systems[system_index].context);
 }
 
-void ecs_system_run_all_with_type(struct ecs *ecs, enum ecs_system_type type) {
+void recs_system_run_all_with_type(struct recs *ecs, enum recs_system_type type) {
   for(uint32_t i = 0; i < ecs->num_registered_systems; i++) {
-    struct ecs_system *s = ecs->systems + i;
+    struct recs_system *s = ecs->systems + i;
     if(s->type == type) {
       s->func(ecs, s->context);
     }
   }
 }
 
-entity ecs_entity_get(struct ecs *ecs, uint32_t index) {
+entity recs_entity_get(struct recs *ecs, uint32_t index) {
   return ecs->ent_man.set_of_ids[index];
 }
 
-entity ecs_entity_add(struct ecs *ecs) {
+entity recs_entity_add(struct recs *ecs) {
   RECS_ASSERT(ecs->ent_man.num_active_entities < ecs->ent_man.max_entities);
 
   entity e = entity_manager_add(&ecs->ent_man);
@@ -147,24 +193,24 @@ entity ecs_entity_add(struct ecs *ecs) {
   
 }
 
-void ecs_entity_remove(struct ecs *ecs, entity e) {
+void recs_entity_remove(struct recs *ecs, entity e) {
 
 
-  ecs_entity_remove_all_components(ecs, e);
+  recs_entity_remove_all_components(ecs, e);
 
 
   //return ID to be reused by entity manager
   entity_manager_remove(&ecs->ent_man, e);
 }
 
-void ecs_entity_remove_at_id_index(struct ecs *ecs, uint32_t id_index) {
+void recs_entity_remove_at_id_index(struct recs *ecs, uint32_t id_index) {
   entity e = ecs->ent_man.set_of_ids[id_index];
-  ecs_entity_remove_all_components(ecs, e);
+  recs_entity_remove_all_components(ecs, e);
   entity_manager_remove_at_index(&ecs->ent_man, id_index);
 }
 
 
-void ecs_entity_add_component(struct ecs *ecs, entity e, component_type comp_type, void *component) {
+void recs_entity_add_component(struct recs *ecs, entity e, component_type comp_type, void *component) {
 
   struct component_pool *ca = ecs->component_type_stores + comp_type;
   component_pool_add(ca, e, component);
@@ -173,16 +219,16 @@ void ecs_entity_add_component(struct ecs *ecs, entity e, component_type comp_typ
   comp_bitmask_list_set(&ecs->comp_bitmasks, e, comp_type, 1);
 }
 
-void ecs_entity_add_tag(struct ecs *ecs, entity e, tag_id tag) {
+void recs_entity_add_tag(struct recs *ecs, entity e, tag_id tag) {
   comp_bitmask_list_set(
     &ecs->comp_bitmasks, 
     e,
-    ecs_tag_id_to_comp_id(ecs, tag), 
+    recs_tag_id_to_comp_id(ecs, tag), 
     1
   );
 }
 
-void ecs_entity_remove_component(struct ecs *ecs, entity e, component_type comp_type) {
+void recs_entity_remove_component(struct recs *ecs, entity e, component_type comp_type) {
   struct component_pool *ca =  ecs->component_type_stores + comp_type;
   component_pool_remove(ca, e);
 
@@ -191,21 +237,21 @@ void ecs_entity_remove_component(struct ecs *ecs, entity e, component_type comp_
 
 }
 
-void ecs_entity_remove_tag(struct ecs *ecs, entity e, tag_id tag) {
+void recs_entity_remove_tag(struct recs *ecs, entity e, tag_id tag) {
   comp_bitmask_list_set(
     &ecs->comp_bitmasks,
     e, 
-    ecs_tag_id_to_comp_id(ecs, tag), 
+    recs_tag_id_to_comp_id(ecs, tag), 
     0
   );
 }
 
-void ecs_entity_remove_all_components(struct ecs *ecs, entity e) {
+void recs_entity_remove_all_components(struct recs *ecs, entity e) {
 
   //remove components from component arrays
   for(component_type t = 0; t < ecs->max_component_types; t++) {
     if(comp_bitmask_list_test(&ecs->comp_bitmasks, e, t)) {
-      ecs_entity_remove_component(ecs, e, t);
+      recs_entity_remove_component(ecs, e, t);
     }
   }
 
@@ -214,18 +260,15 @@ void ecs_entity_remove_all_components(struct ecs *ecs, entity e) {
 
 }
 
-int ecs_entity_has_component(struct ecs *ecs, entity e, component_type c) {
+int recs_entity_has_component(struct recs *ecs, entity e, component_type c) {
   return comp_bitmask_list_test(&ecs->comp_bitmasks, e, c);
 }
 
-int ecs_entity_has_tag(struct ecs *ecs, entity e, tag_id c) {
-  return comp_bitmask_list_test(&ecs->comp_bitmasks, e, ecs_tag_id_to_comp_id(ecs, c));
+int recs_entity_has_tag(struct recs *ecs, entity e, tag_id c) {
+  return comp_bitmask_list_test(&ecs->comp_bitmasks, e, recs_tag_id_to_comp_id(ecs, c));
 }
 
-void* ecs_entity_get_component(struct ecs *ecs, entity e, component_type c) {
+void* recs_entity_get_component(struct recs *ecs, entity e, component_type c) {
   return component_pool_get(ecs->component_type_stores + c, e);
 }
 
-struct component_pool* ecs_get_component_pool(struct ecs *ecs, component_type c) {
-  return ecs->component_type_stores + c;
-}

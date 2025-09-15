@@ -4,8 +4,7 @@
 
 #include <stdint.h>
 
-
-typedef uint32_t entity;
+#include "recs.h"
 
 struct entity_manager {
   //stores list of all unused entity IDs.

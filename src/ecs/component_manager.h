@@ -2,8 +2,8 @@
 #define ECS_COMPONENT_MANAGER
 
 #include "entity_manager.h"
+#include "recs.h"
 
-typedef uint32_t component_type;
 
 struct component_pool {
   char *buffer;

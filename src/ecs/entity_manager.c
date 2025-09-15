@@ -1,6 +1,5 @@
 #include "entity_manager.h"
 
-#include "def.h"
 
 /*
   We first initialize a set with the IDs 1 through MAX_ENTITIES.

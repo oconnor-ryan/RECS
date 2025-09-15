@@ -15,11 +15,10 @@ set(ECS "ecs")
 
 
 add_library(${ECS} STATIC 
-  src/component_manager.c
-  src/ecs.c
-  src/entity_manager.c
-  src/util/stack.c
-  src/bitmask_handler.c
+  src/ecs/component_manager.c
+  src/ecs/ecs.c
+  src/ecs/entity_manager.c
+  src/ecs/bitmask_handler.c
 )
 
 #-Werror was removed

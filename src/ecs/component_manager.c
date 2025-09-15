@@ -1,11 +1,10 @@
 #include "component_manager.h"
-#include "ecs.h"
+#include "recs.h"
 
 #include <string.h>
 
 #include <stdlib.h>
 
-#include "def.h"
 
 #define NO_COMP_ID NO_ENTITY_ID
 
