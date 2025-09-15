@@ -2,7 +2,25 @@
 
 > Note that this library is still a work-in-progress, so expect breaking changes to be introduced in future updates until I consider this library stable.
 
-This is a basic implementation of a generic Entity-Component-System. This uses sparse sets and component pools for storing component data and mapping entity IDs to their components.
+This is a basic implementation of a generic Entity-Component-System. This uses sparse sets and component pools for storing component data and mapping entity IDs to their components. 
+
+## Building the Library
+
+You will need the following dependencies installed in order to build
+this project from source:
+- CMake >= 3.15
+- A C compiler that supports C11 standard.
+
+Before building with CMake, you must set up your build folder using:
+`cmake -S . -B build`
+
+To build only the RECS library:
+`cmake --build build --target recs`
+
+To build the example code for using the RECS library:
+`cmake --build build --target example1`
+`cmake --build build --target example2`
+
 
 ## Quick Explanation of What A Entity Component System (ECS) Is:
 
@@ -31,14 +49,14 @@ By organizing your game objects and their behaviors this way, you can easily add
   - Add and remove entities
   - Attach components and tags to entities
   - Register systems and assign them one of 2 tags:
-    - ECS_SYSTEM_TYPE_UPDATE
+    - RECS_SYSTEM_TYPE_UPDATE
       - Used to run game logic and physics updates
-    - ECS_SYSTEM_TYPE_RENDER
+    - RECS_SYSTEM_TYPE_RENDER
       - Used to render entities to the screen
 
   - Support for entity tags, which are essentially components with no attached data
   - Users can add custom malloc(), free(), and assert() implementations into this library
-    by overwriting the MALLOC, FREE, and ASSERT macros.
+    by overwriting the RECS_MALLOC, RECS_FREE, and RECS_ASSERT macros.
 
   - Size Limitations
     - Maximum of 2^32 - 1 entities.
@@ -139,7 +157,7 @@ int main(void) {
   }
 
   //register system and assign it with the type "UPDATE"
-  recs_system_register(ecs, system_print_message, NULL, ECS_SYSTEM_TYPE_UPDATE);
+  recs_system_register(ecs, system_print_message, NULL, RECS_SYSTEM_TYPE_UPDATE);
 
 
   //initialize an entity
@@ -161,9 +179,9 @@ int main(void) {
   recs_entity_add_tag(ecs, e, TAG_B);
   
 
-  //run all registered systems tagged with ECS_SYSTEM_TYPE_UPDATE
+  //run all registered systems tagged with RECS_SYSTEM_TYPE_UPDATE
   //in the order they are registered in.
-  recs_system_run_all_with_type(ecs, ECS_SYSTEM_TYPE_UPDATE);
+  recs_system_run_all_with_type(ecs, RECS_SYSTEM_TYPE_UPDATE);
 
   //remove the 1st entity
   recs_entity_remove(ecs, e);

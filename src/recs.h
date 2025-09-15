@@ -32,8 +32,8 @@ typedef uint32_t tag_id;
 //of systems should run.
 
 enum recs_system_type {
-  ECS_SYSTEM_TYPE_UPDATE,
-  ECS_SYSTEM_TYPE_RENDER,
+  RECS_SYSTEM_TYPE_UPDATE,
+  RECS_SYSTEM_TYPE_RENDER,
 
 };
 
@@ -47,6 +47,9 @@ recs recs_init(uint32_t max_entities, uint32_t max_component_types, uint32_t max
 void recs_free(struct recs *recs);
 
 int recs_component_register(struct recs *recs, component_type type, uint32_t max_components, size_t comp_size);
+void* recs_component_get(struct recs *recs, component_type c, uint32_t index);
+
+
 
 void recs_system_register(struct recs *recs, recs_system_func func, void *context, enum recs_system_type type);
 
@@ -78,6 +81,8 @@ int recs_entity_has_component(struct recs *recs, entity e, component_type c);
 int recs_entity_has_tag(struct recs *recs, entity e, tag_id c);
 
 void* recs_entity_get_component(struct recs *recs, entity e, component_type c);
+
+
 
 
 #endif// RECS_H

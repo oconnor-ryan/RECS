@@ -272,3 +272,10 @@ void* recs_entity_get_component(struct recs *ecs, entity e, component_type c) {
   return component_pool_get(ecs->component_type_stores + c, e);
 }
 
+//components are densely packed, so you can retrieve them using an index
+//if desired. Note that components will not stay at the same index when removing
+//components, so make sure not to remove components when using this function
+void* recs_component_get(struct recs *recs, component_type c, uint32_t index) {
+  struct component_pool *p = recs->component_type_stores + c;
+  return p->buffer + (index * p->component_size);
+}

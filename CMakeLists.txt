@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(ecs)
+project(recs VERSION 0.1 LANGUAGES C)
 
 set(CMAKE_BUILD_TYPE "Debug")
 
@@ -8,7 +8,7 @@ set(CMAKE_C_STANDARD 11) # Requires C11 standard
 
 enable_testing()
 
-set(ECS "ecs")
+set(ECS "recs")
 
 
 #add_subdirectory(example)

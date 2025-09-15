@@ -90,7 +90,7 @@ void run_update(struct recs *ecs) {
 
   printf("Run System %d: \n===================\n", num_updates);
   //run all systems tagged with system type UPDATE
-  recs_system_run_all_with_type(ecs, ECS_SYSTEM_TYPE_UPDATE);
+  recs_system_run_all_with_type(ecs, RECS_SYSTEM_TYPE_UPDATE);
   printf("===================\nEnd System %d \n\n", num_updates);
 
   num_updates++;
@@ -119,7 +119,7 @@ int main(void) {
   }
 
   //register system and assign it with the type "UPDATE"
-  recs_system_register(ecs, system_print_message, NULL, ECS_SYSTEM_TYPE_UPDATE);
+  recs_system_register(ecs, system_print_message, NULL, RECS_SYSTEM_TYPE_UPDATE);
 
 
   //initialize an entity and attach its components.
