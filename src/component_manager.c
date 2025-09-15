@@ -26,7 +26,7 @@ int component_pool_init(struct component_pool *ca, uint32_t component_size, uint
 
   //allocate all memory at once needed to store raw component data,
   //entity to component mapper, and component to entity mapper.
-  char *buffer = MALLOC(comp_buffer_size + ent_to_comp_buffer_size + comp_to_ent_buffer_size);
+  char *buffer = RECS_MALLOC(comp_buffer_size + ent_to_comp_buffer_size + comp_to_ent_buffer_size);
   if(buffer == NULL) {
     return 0;
   }
@@ -67,8 +67,8 @@ void *component_pool_get(struct component_pool *ca, entity e) {
 
 
 void component_pool_add(struct component_pool *ca, entity e, void *component) {
-  ASSERT(ca->num_components < ca->max_components);
-  
+  RECS_ASSERT(ca->num_components < ca->max_components);
+
   uint32_t component_index = ca->num_components;
 
   memcpy(ca->buffer + (ca->component_size * component_index), component, ca->component_size);
@@ -113,9 +113,9 @@ void component_pool_remove(struct component_pool *ca, entity e) {
 
 void component_pool_free(struct component_pool *ca) {
   //remember we made 1 big allocation starting at ca->buffer,
-  //so we only need to free that one buffer.
-  FREE(ca->buffer);
-  //FREE(ca->comp_to_entity);
-  //FREE(ca->entity_to_comp);
+  //so we only need to RECS_FREE that one buffer.
+  RECS_FREE(ca->buffer);
+  //RECS_FREE(ca->comp_to_entity);
+  //RECS_FREE(ca->entity_to_comp);
 }
 

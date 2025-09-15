@@ -40,7 +40,6 @@ struct ecs {
   struct component_pool *component_type_stores;
 
   uint32_t num_registered_components;
-  uint32_t num_registered_tags;
   uint32_t num_registered_systems;
 
   uint32_t max_component_types;

@@ -51,7 +51,7 @@ void entity_manager_init(struct entity_manager *em, entity *buffer, uint32_t max
 
 
 entity entity_manager_add(struct entity_manager *em) {
-  ASSERT(em->num_active_entities < em->max_entities);
+  RECS_ASSERT(em->num_active_entities < em->max_entities);
 
   entity e = em->set_of_ids[em->num_active_entities];
   em->num_active_entities++;
@@ -73,7 +73,7 @@ void entity_manager_remove_at_index(struct entity_manager *em, uint32_t active_e
 }
 
 void entity_manager_remove(struct entity_manager *em, entity e) {
-  ASSERT(em->num_active_entities != 0);
+  RECS_ASSERT(em->num_active_entities != 0);
 
   //this requires a search for the ID.
   for(uint32_t i = 0; i < em->num_active_entities; i++) {

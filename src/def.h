@@ -2,19 +2,19 @@
 #define ECS_DEF_H
 
 
-#ifndef MALLOC
+#ifndef RECS_MALLOC
   #include <stdlib.h>
-  #define MALLOC(size) malloc(size)
+  #define RECS_MALLOC(size) malloc(size)
 #endif
 
-#ifndef FREE
+#ifndef RECS_FREE
   #include <stdlib.h>
-  #define FREE(ptr) free(ptr)
+  #define RECS_FREE(ptr) free(ptr)
 #endif
 
-#ifndef ASSERT
+#ifndef RECS_ASSERT
   #include <assert.h>
-  #define ASSERT(boolean) assert(boolean)
+  #define RECS_ASSERT(boolean) assert(boolean)
 #endif
 
 #define NO_ENTITY_ID 0xFFFFFFFF

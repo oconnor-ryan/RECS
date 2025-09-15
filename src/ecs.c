@@ -6,7 +6,7 @@
 //all tags appear AFTER the component_types with data.
 static inline uint32_t ecs_tag_id_to_comp_id(struct ecs *ecs, tag_id t) {
   uint32_t id = t + ecs->max_component_types;
-  ASSERT(id < ecs->max_tags + ecs->max_component_types);
+  RECS_ASSERT(id < ecs->max_tags + ecs->max_component_types);
   return id;
 }
 
@@ -14,12 +14,12 @@ static inline uint32_t ecs_tag_id_to_comp_id(struct ecs *ecs, tag_id t) {
 int ecs_init(struct ecs *ecs, uint32_t max_entities, uint32_t max_component_types, uint32_t max_tags, uint32_t max_systems) {
   uint32_t max_comps = max_component_types + max_tags;
 
-  //assert that max_comps does not overflow
-  ASSERT(max_comps > max_component_types && max_comps > max_tags);
+  //RECS_ASSERT that max_comps does not overflow
+  RECS_ASSERT(max_comps > max_component_types && max_comps > max_tags);
 
-  //assert that we don't have 2^32 - 1 entities, since the largest 32-bit unsigned
+  //RECS_ASSERT that we don't have 2^32 - 1 entities, since the largest 32-bit unsigned
   //integer is used as a marker for something with no entities
-  ASSERT(max_entities != NO_ENTITY_ID);
+  RECS_ASSERT(max_entities != NO_ENTITY_ID);
 
 
   ecs->max_systems = max_systems;
@@ -28,7 +28,6 @@ int ecs_init(struct ecs *ecs, uint32_t max_entities, uint32_t max_component_type
 
   ecs->num_registered_components = 0;
   ecs->num_registered_systems = 0;
-  ecs->num_registered_tags = 0;
 
 
   //get sizes needed for each buffer
@@ -43,7 +42,7 @@ int ecs_init(struct ecs *ecs, uint32_t max_entities, uint32_t max_component_type
   size_t system_buffer_size = ecs->max_systems * sizeof(struct ecs_system);
 
   //allocate one big buffer that will store nearly all of the ECS's dynamically allocated data.
-  uint8_t *big_buffer = MALLOC(entity_buffer_size + bitmask_list_buffer_size + component_pool_list_size + system_buffer_size);
+  uint8_t *big_buffer = RECS_MALLOC(entity_buffer_size + bitmask_list_buffer_size + component_pool_list_size + system_buffer_size);
   if(big_buffer == NULL) {
     return 0;
   }
@@ -55,7 +54,7 @@ int ecs_init(struct ecs *ecs, uint32_t max_entities, uint32_t max_component_type
 
 
   //assign all buffers to appropriate parts of ECS.
-  ecs->buffer = big_buffer; //makes it easier to deallocate since we know where our MALLOCED memory starts
+  ecs->buffer = big_buffer; //makes it easier to deallocate since we know where our RECS_MALLOCED memory starts
 
   entity_manager_init(&ecs->ent_man, (entity*)entity_buffer, max_entities);
 
@@ -70,19 +69,26 @@ int ecs_init(struct ecs *ecs, uint32_t max_entities, uint32_t max_component_type
 }
 
 void ecs_free(struct ecs *ecs) {
-  //remember that we make 1 BIG allocation to store all bitsets
-  FREE(ecs->buffer);
 
+  //make sure to free individual component pools before freeing the rest
+  //of the ECS buffer
+  
   //because each registered component pool makes its own allocation
   //to fit the variable component sizes, we need to free them individually.
   for(uint32_t i = 0; i < ecs->num_registered_components; i++) {
     component_pool_free(ecs->component_type_stores + i);
   }
+
+
+  //remember that we made 1 BIG allocation to store most data
+  RECS_FREE(ecs->buffer);
+
+  
 }
 
 int ecs_component_register(struct ecs *ecs, component_type type, uint32_t max_components, size_t comp_size) {
-  ASSERT(comp_size > 0);
-  ASSERT(ecs->num_registered_components < ecs->max_component_types);
+  RECS_ASSERT(comp_size > 0);
+  RECS_ASSERT(ecs->num_registered_components < ecs->max_component_types);
 
   //register component with attached data
   struct component_pool *cp = ecs->component_type_stores + type;
@@ -134,7 +140,7 @@ entity ecs_entity_get(struct ecs *ecs, uint32_t index) {
 }
 
 entity ecs_entity_add(struct ecs *ecs) {
-  ASSERT(ecs->ent_man.num_active_entities < ecs->ent_man.max_entities);
+  RECS_ASSERT(ecs->ent_man.num_active_entities < ecs->ent_man.max_entities);
 
   entity e = entity_manager_add(&ecs->ent_man);
   return e;
