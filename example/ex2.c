@@ -74,12 +74,12 @@ int main(void) {
 
 
   // register components
-  uint8_t comp_register_success = recs_component_register(ecs, COMPONENT_MESSAGE, 10, sizeof(struct message_component));
-  comp_register_success |= recs_component_register(ecs, COMPONENT_NUMBER, 10, sizeof(struct number_component));
+  uint8_t comp_register_failed = !recs_component_register(ecs, COMPONENT_MESSAGE, 10, sizeof(struct message_component));
+  comp_register_failed |= !recs_component_register(ecs, COMPONENT_NUMBER, 10, sizeof(struct number_component));
 
   //note that component registration can fail if RECS_MALLOC() fails to 
   //allocate enough memory for it.
-  if(!comp_register_success) {
+  if(comp_register_failed) {
     recs_free(ecs);
     printf("Failed to register component!\n");
     return 1;
