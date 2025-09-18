@@ -37,13 +37,19 @@ enum tag {
 };
 
 //define our systems
-void system_print_message(struct recs *ecs, void *context) {
+void system_print_message(struct recs *ecs) {
+  //grab context pointer from ECS and convert to appropriate type
+  int *num_from_context_ptr = (int*)recs_system_get_context(ecs);
+
+  printf("========== System Print Message %d ==========\n", *num_from_context_ptr);
 
   //iterate through every entity
   for(uint32_t i = 0; i < recs_num_active_entities(ecs); i++) {
 
     //grab our entity ID
-    entity e = recs_entity_get(ecs, i);
+    recs_entity e = recs_entity_get(ecs, i);
+
+    printf("Entity Id: %u\n", e);
 
     //check if our entity has a specific component, if it does, grab that component
     //and do something with it.
@@ -63,11 +69,20 @@ void system_print_message(struct recs *ecs, void *context) {
     printf("Has Tag A = %s\n", has_tag_a_str);
     printf("Has Tag B = %s\n", has_tag_b_str);
 
+    printf("End of Entity %u\n\n", e);
 
   }
+
+  printf("============================================\n\n");
+
+  //modify value in context pointer
+  (*num_from_context_ptr)++;
+
+
+
 }
 
-entity entity_factory_a(struct recs *ecs, uint64_t num, char message[25]) {
+recs_entity entity_factory_a(struct recs *ecs, uint64_t num, char message[25]) {
   struct number_component n = {
     .num = num
   };
@@ -77,7 +92,7 @@ entity entity_factory_a(struct recs *ecs, uint64_t num, char message[25]) {
     m.message[i] = message[i];
   }
 
-  entity e = recs_entity_add(ecs);
+  recs_entity e = recs_entity_add(ecs);
 
   recs_entity_add_component(ecs, e, COMPONENT_MESSAGE, &m);
   recs_entity_add_component(ecs, e, COMPONENT_NUMBER, &n);
@@ -86,20 +101,17 @@ entity entity_factory_a(struct recs *ecs, uint64_t num, char message[25]) {
 }
 
 void run_update(struct recs *ecs) {
-  static uint32_t num_updates = 1;
 
-  printf("Run System %d: \n===================\n", num_updates);
   //run all systems tagged with system type UPDATE
   recs_system_run_all_with_type(ecs, RECS_SYSTEM_TYPE_UPDATE);
-  printf("===================\nEnd System %d \n\n", num_updates);
-
-  num_updates++;
 }
 
 int main(void) {
 
-  //attempt to allocate and initialize our ECS
-  struct recs *ecs = recs_init(2, 2, 2, 2);
+  int num_updates = 1;
+
+  //attempt to allocate and initialize our ECS, along with setting the context pointer.
+  struct recs *ecs = recs_init(2, 2, 2, 2, &num_updates);
 
   //will fail if we fail to allocate enough memory for the ECS.
   if(ecs == NULL) {
@@ -119,12 +131,12 @@ int main(void) {
   }
 
   //register system and assign it with the type "UPDATE"
-  recs_system_register(ecs, system_print_message, NULL, RECS_SYSTEM_TYPE_UPDATE);
+  recs_system_register(ecs, system_print_message, RECS_SYSTEM_TYPE_UPDATE);
 
 
   //initialize an entity and attach its components.
-  entity a = entity_factory_a(ecs, 1, "Hi");
-  entity b = entity_factory_a(ecs, 2, "There");
+  recs_entity a = entity_factory_a(ecs, 1, "Hi");
+  recs_entity b = entity_factory_a(ecs, 2, "There");
   run_update(ecs);
   
 
@@ -139,7 +151,7 @@ int main(void) {
 
 
   //add a new entity
-  entity c = entity_factory_a(ecs, 3, "Again");
+  recs_entity c = entity_factory_a(ecs, 3, "Again");
 
   //assign 2 tags to this new entity
   recs_entity_add_tag(ecs, c, TAG_A);

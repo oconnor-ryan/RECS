@@ -49,9 +49,9 @@ By organizing your game objects and their behaviors this way, you can easily add
   - Add and remove entities
   - Attach components and tags to entities
   - Register systems and assign them one of 2 tags:
-    - RECS_SYSTEM_TYPE_UPDATE
+    - `RECS_SYSTEM_TYPE_UPDATE`
       - Used to run game logic and physics updates
-    - RECS_SYSTEM_TYPE_RENDER
+    - `RECS_SYSTEM_TYPE_RENDER`
       - Used to render entities to the screen
 
   - Support for entity tags, which are essentially components with no attached data
@@ -194,6 +194,10 @@ int main(void) {
 
 ```
 
+## Potential Upcoming Features
+- Allow user to define system types (rather than only being able to label them `RECS_SYSTEM_TYPE_UPDATE` and `RECS_SYSTEM_TYPE_RENDER`).
+- Allow more efficient way to query entities within systems based on their components and tags.
+  - Perhaps users could tell the ECS what types of queries they want to make on initialization of ECS, that way each entity gets stored within a specific array containing entities with the same set of elements.
 
 ## External Resources About ECS and Other ECS Projects
 - https://en.wikipedia.org/wiki/Entity_component_system

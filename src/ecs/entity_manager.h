@@ -8,20 +8,20 @@
 
 struct entity_manager {
   //stores list of all unused entity IDs.
-  entity *set_of_ids;
+  recs_entity *set_of_ids;
   uint32_t max_entities;
   uint32_t num_active_entities;
 };
 
 
 
-void entity_manager_init(struct entity_manager *em, entity *buffer, uint32_t max_entities);
+void entity_manager_init(struct entity_manager *em, recs_entity *buffer, uint32_t max_entities);
 
-entity entity_manager_add(struct entity_manager *em);
+recs_entity entity_manager_add(struct entity_manager *em);
 
 void entity_manager_remove_at_index(struct entity_manager *em, uint32_t active_entity_index);
 
-void entity_manager_remove(struct entity_manager *em, entity e);
+void entity_manager_remove(struct entity_manager *em, recs_entity e);
 
 
 

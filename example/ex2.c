@@ -33,13 +33,13 @@ enum tag {
 };
 
 //define our systems
-void system_print_message(struct recs *ecs, void *context) {
+void system_print_message(struct recs *ecs) {
 
   //iterate through every entity
   for(uint32_t i = 0; i < recs_num_active_entities(ecs); i++) {
 
     //grab our entity ID
-    entity e = recs_entity_get(ecs, i);
+    recs_entity e = recs_entity_get(ecs, i);
 
     //check if our entity has a specific component, if it does, grab that component
     //and do something with it.
@@ -64,7 +64,7 @@ void system_print_message(struct recs *ecs, void *context) {
 int main(void) {
 
   //attempt to allocate and initialize our ECS
-  struct recs *ecs = recs_init(2, 2, 2, 2);
+  struct recs *ecs = recs_init(2, 2, 2, 2, NULL);
 
   //will fail if we fail to allocate enough memory for the ECS.
   if(ecs == NULL) {
@@ -86,11 +86,11 @@ int main(void) {
   }
 
   //register system and assign it with the type "UPDATE"
-  recs_system_register(ecs, system_print_message, NULL, RECS_SYSTEM_TYPE_UPDATE);
+  recs_system_register(ecs, system_print_message, RECS_SYSTEM_TYPE_UPDATE);
 
 
   //initialize an entity
-  entity e = recs_entity_add(ecs);
+  recs_entity e = recs_entity_add(ecs);
 
   //initialize and add this entity's components
   struct number_component n = {

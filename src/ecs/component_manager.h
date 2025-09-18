@@ -20,15 +20,15 @@ struct component_pool {
   //component data contiguous by moving the last component into the component
   //being removed. This requires us to keep track of each component->entity mapping
   //so that we can properly update our entity->comp mapping.
-  entity *comp_to_entity;
+  recs_entity *comp_to_entity;
 
 };
 
 
 int component_pool_init(struct component_pool *ca, uint32_t component_size, uint32_t max_components, uint32_t max_entities);
-void *component_pool_get(struct component_pool *ca, entity e);
-void component_pool_add(struct component_pool *ca, entity e, void *component);
-void component_pool_remove(struct component_pool *ca, entity e);
+void *component_pool_get(struct component_pool *ca, recs_entity e);
+void component_pool_add(struct component_pool *ca, recs_entity e, void *component);
+void component_pool_remove(struct component_pool *ca, recs_entity e);
 void component_pool_free(struct component_pool *ca);
 
 

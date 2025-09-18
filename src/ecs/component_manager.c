@@ -6,7 +6,7 @@
 #include <stdlib.h>
 
 
-#define NO_COMP_ID NO_ENTITY_ID
+#define NO_COMP_ID RECS_NO_ENTITY_ID
 
 
 int component_pool_init(struct component_pool *ca, uint32_t component_size, uint32_t max_components, uint32_t max_entities) {
@@ -20,7 +20,7 @@ int component_pool_init(struct component_pool *ca, uint32_t component_size, uint
 
   //only allocate to max_components since that is usually equal to 
   //or less than the max_entities, making memory storage slightly more efficient.
-  size_t comp_to_ent_buffer_size = sizeof(entity) * max_components;
+  size_t comp_to_ent_buffer_size = sizeof(recs_entity) * max_components;
 
 
   //allocate all memory at once needed to store raw component data,
@@ -44,7 +44,7 @@ int component_pool_init(struct component_pool *ca, uint32_t component_size, uint
   //is perfectly find. 
 
   for(uint32_t i = 0; i < ca->max_components; i++) {
-    ca->comp_to_entity[i] = NO_ENTITY_ID;
+    ca->comp_to_entity[i] = RECS_NO_ENTITY_ID;
   }
 
   for(uint32_t i = 0; i < max_entities; i++) {
@@ -54,7 +54,7 @@ int component_pool_init(struct component_pool *ca, uint32_t component_size, uint
   return 1;
 }
 
-void *component_pool_get(struct component_pool *ca, entity e) {
+void *component_pool_get(struct component_pool *ca, recs_entity e) {
   
   uint32_t component_index = ca->entity_to_comp[e];
 
@@ -65,7 +65,7 @@ void *component_pool_get(struct component_pool *ca, entity e) {
 }
 
 
-void component_pool_add(struct component_pool *ca, entity e, void *component) {
+void component_pool_add(struct component_pool *ca, recs_entity e, void *component) {
   RECS_ASSERT(ca->num_components < ca->max_components);
 
   uint32_t component_index = ca->num_components;
@@ -79,14 +79,14 @@ void component_pool_add(struct component_pool *ca, entity e, void *component) {
 
 }
 
-void component_pool_remove(struct component_pool *ca, entity e) {
+void component_pool_remove(struct component_pool *ca, recs_entity e) {
   uint32_t component_index = ca->entity_to_comp[e];
 
   if(component_index == NO_COMP_ID) {
     return;
   }
   uint32_t last_component_index = ca->num_components-1;
-  entity entity_at_last_component = ca->comp_to_entity[last_component_index];
+  recs_entity entity_at_last_component = ca->comp_to_entity[last_component_index];
 
 
   //move last element to component being removed.
