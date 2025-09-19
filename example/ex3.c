@@ -37,15 +37,14 @@ enum tag {
 };
 
 enum system_group {
-  SYSTEM_GROUP_UPDATE
+  SYSTEM_GROUP_A,
+  SYSTEM_GROUP_B,
+
 };
 
 //define our systems
 void system_print_message(struct recs *ecs) {
-  //grab context pointer from ECS and convert to appropriate type
-  int *num_from_context_ptr = (int*)recs_system_get_context(ecs);
-
-  printf("========== System Print Message %d ==========\n", *num_from_context_ptr);
+  printf("========== System Print Message ==========\n");
 
   //iterate through every entity
   for(uint32_t i = 0; i < recs_num_active_entities(ecs); i++) {
@@ -61,11 +60,46 @@ void system_print_message(struct recs *ecs) {
       struct message_component *m = (struct message_component *)recs_entity_get_component(ecs, e, COMPONENT_MESSAGE);
       printf("Message: %s\n", m->message);
     }
+    printf("End of Entity %u\n\n", e);
+
+  }
+
+  printf("============================================\n\n");
+}
+
+void system_print_number(struct recs *ecs) {
+
+  printf("========== System Print Number ==========\n");
+
+  //iterate through every entity
+  for(uint32_t i = 0; i < recs_num_active_entities(ecs); i++) {
+
+    //grab our entity ID
+    recs_entity e = recs_entity_get(ecs, i);
+
+    printf("Entity Id: %u\n", e);
 
     if(recs_entity_has_component(ecs, e, COMPONENT_NUMBER)) {
       struct number_component *m = (struct number_component *)recs_entity_get_component(ecs, e, COMPONENT_NUMBER);
       printf("Number: %llu\n", m->num);
     }
+    printf("End of Entity %u\n\n", e);
+
+  }
+
+  printf("============================================\n\n");
+}
+
+void system_print_tags(struct recs *ecs) {
+  printf("========== System Print Tags ==========\n");
+
+  //iterate through every entity
+  for(uint32_t i = 0; i < recs_num_active_entities(ecs); i++) {
+
+    //grab our entity ID
+    recs_entity e = recs_entity_get(ecs, i);
+
+    printf("Entity Id: %u\n", e);
 
     const char *has_tag_a_str = recs_entity_has_tag(ecs, e, TAG_A) ? "true" : "false";
     const char *has_tag_b_str = recs_entity_has_tag(ecs, e, TAG_B) ? "true" : "false";
@@ -74,17 +108,11 @@ void system_print_message(struct recs *ecs) {
     printf("Has Tag B = %s\n", has_tag_b_str);
 
     printf("End of Entity %u\n\n", e);
-
   }
 
   printf("============================================\n\n");
-
-  //modify value in context pointer
-  (*num_from_context_ptr)++;
-
-
-
 }
+
 
 recs_entity entity_factory_a(struct recs *ecs, uint64_t num, char message[25]) {
   struct number_component n = {
@@ -107,7 +135,16 @@ recs_entity entity_factory_a(struct recs *ecs, uint64_t num, char message[25]) {
 void run_update(struct recs *ecs) {
 
   //run all systems tagged with system type UPDATE
-  recs_system_run(ecs, SYSTEM_GROUP_UPDATE);
+  printf("************** System Group A **************\n\n");
+  recs_system_run(ecs, SYSTEM_GROUP_A);
+  printf("\n************** End Of Group A **************\n\n");
+
+
+  printf("************** System Group B **************\n\n");
+  recs_system_run(ecs, SYSTEM_GROUP_B);
+  printf("\n************** End Of Group B **************\n\n");
+
+
 }
 
 int main(void) {
@@ -115,7 +152,7 @@ int main(void) {
   int num_updates = 1;
 
   //attempt to allocate and initialize our ECS, along with setting the context pointer.
-  struct recs *ecs = recs_init(2, 2, 2, 2, 2, &num_updates);
+  struct recs *ecs = recs_init(2, 2, 2, 3, 2, &num_updates);
 
   //will fail if we fail to allocate enough memory for the ECS.
   if(ecs == NULL) {
@@ -135,42 +172,24 @@ int main(void) {
   }
 
   //register system and assign it with the type "UPDATE"
-  recs_system_register(ecs, system_print_message, SYSTEM_GROUP_UPDATE);
+  recs_system_register(ecs, system_print_message, SYSTEM_GROUP_A);
+  recs_system_register(ecs, system_print_number, SYSTEM_GROUP_B);
+  recs_system_register(ecs, system_print_tags, SYSTEM_GROUP_A);
+
+
 
 
   //initialize an entity and attach its components.
   recs_entity a = entity_factory_a(ecs, 1, "Hi");
   recs_entity b = entity_factory_a(ecs, 2, "There");
+  recs_entity_add_tag(ecs, a, TAG_A);
+  recs_entity_add_tag(ecs, b, TAG_B);
+
   run_update(ecs);
   
 
   //remove the 1st entity
   recs_entity_remove(ecs, a);
-  run_update(ecs);
-
-
-  //remove the 2nd entity
-  recs_entity_remove(ecs, b);
-  run_update(ecs);
-
-
-  //add a new entity
-  recs_entity c = entity_factory_a(ecs, 3, "Again");
-
-  //assign 2 tags to this new entity
-  recs_entity_add_tag(ecs, c, TAG_A);
-  recs_entity_add_tag(ecs, c, TAG_B);
-
-  run_update(ecs);
-
-
-  //remove the message component from entity c
-  recs_entity_remove_component(ecs, c, COMPONENT_MESSAGE);
-  run_update(ecs);
-
-  //remove TAG_A from entity c
-  recs_entity_remove_tag(ecs, c, TAG_A);
-
   run_update(ecs);
 
 

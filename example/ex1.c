@@ -32,6 +32,10 @@ enum tag {
   TAG_B
 };
 
+enum system_group {
+  SYSTEM_GROUP_UPDATE
+};
+
 //define our systems
 void system_print_message(struct recs *ecs) {
 
@@ -64,7 +68,7 @@ void system_print_message(struct recs *ecs) {
 int main(void) {
 
   //attempt to allocate and initialize our ECS
-  struct recs *ecs = recs_init(2, 2, 2, 2, NULL);
+  struct recs *ecs = recs_init(2, 2, 2, 2, 2, NULL);
 
   //will fail if we fail to allocate enough memory for the ECS.
   if(ecs == NULL) {
@@ -86,7 +90,7 @@ int main(void) {
   }
 
   //register system and assign it with the type "UPDATE"
-  recs_system_register(ecs, system_print_message, RECS_SYSTEM_TYPE_UPDATE);
+  recs_system_register(ecs, system_print_message, SYSTEM_GROUP_UPDATE);
 
 
   //initialize an entity
@@ -110,7 +114,7 @@ int main(void) {
 
   //run all registered systems tagged with RECS_SYSTEM_TYPE_UPDATE
   //in the order they are registered in.
-  recs_system_run_all_with_type(ecs, RECS_SYSTEM_TYPE_UPDATE);
+  recs_system_run(ecs, SYSTEM_GROUP_UPDATE);
 
   //remove the 1st entity
   recs_entity_remove(ecs, e);
