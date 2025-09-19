@@ -23,8 +23,24 @@ struct number_component {
 };
 
 
-// define component IDs. Make sure the components and tags
-// are valued starting at 0, 1, 2, ... (this is what C does by default).
+/*
+  You have the option to not use any of the macros defined in the RECS library, such as:
+  RECS_INIT_COMP_IDS
+  RECS_INIT_TAG_IDS
+  RECS_INIT_SYS_GRP_IDS
+  RECS_COMP_TO_ID_MAPPER,
+  RECS_MAP_COMP_TO_ID,
+  RECS_MAP_COMP_PTR_TO_ID,
+  RECS_ENTITY_ADD_COMP
+
+  However, you will need to be careful to ensure that:
+  - All enums for tags, components, and system_groups have values that start at 0 and increase by 1 (sinc
+  these are indices to arrays)
+  - Remember which component enum matches with what data structure or type you used to define the component with.
+
+
+
+*/
 
 enum component {
   COMPONENT_MESSAGE, //associated with 'struct message_component'

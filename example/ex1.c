@@ -18,23 +18,21 @@ struct number_component {
 };
 
 
-// define components and tags as separate enums.
-// Make sure that the values of component and tag enums start at 0, 
-// and increment by 1 (this is what C does with enums by default)
+// define components, tags, and system group enums.
+// note that you can define these enums manually if desired, though you will need to 
+// make sure enum values start at 0 and increment by 1.
 
-enum component {
-  COMPONENT_MESSAGE, //associated with 'struct message_component'
-  COMPONENT_NUMBER   //associated with 'struct number_component'
-};
+RECS_INIT_COMP_IDS(component, COMPONENT_MESSAGE, COMPONENT_NUMBER);
+RECS_INIT_TAG_IDS(tag, TAG_A, TAG_B);
+RECS_INIT_SYS_GRP_IDS(system_group, SYSTEM_GROUP_UPDATE);
 
-enum tag {
-  TAG_A,
-  TAG_B
-};
 
-enum system_group {
-  SYSTEM_GROUP_UPDATE
-};
+//user must define RECS_COMP_TO_ID_MAPPER to convert types to ids in order to use RECS_MAP_COMP_TO_ID macro. 
+//for each entry, type it in the format "<type>: <integer_value>", with a comma separating each entry.
+#define RECS_COMP_TO_ID_MAPPER \
+  struct message_component: COMPONENT_MESSAGE, \
+  struct number_component: COMPONENT_NUMBER 
+
 
 //define our systems
 void system_print_message(struct recs *ecs) {
@@ -45,16 +43,17 @@ void system_print_message(struct recs *ecs) {
     //grab our entity ID
     recs_entity e = recs_entity_get(ecs, i);
 
-    //check if our entity has a specific component, if it does, grab that component
-    //and do something with it.
-    if(recs_entity_has_component(ecs, e, COMPONENT_MESSAGE)) {
-      struct message_component *m = (struct message_component *)recs_entity_get_component(ecs, e, COMPONENT_MESSAGE);
+    //use RECS_MAP_COMP_PTR_TO_ID macro to retrieve component ID based on the type pointed to by variable 'm' and 'n'
+    struct message_component *m = recs_entity_get_component(ecs, e, RECS_MAP_COMP_PTR_TO_ID(m));
+    struct number_component *n = recs_entity_get_component(ecs, e, RECS_MAP_COMP_PTR_TO_ID(n));
+
+    //check if our entity has a specific component, if it does, do something with it.
+    if(m != NULL) {
       printf("Message: %s\n", m->message);
     }
 
-    if(recs_entity_has_component(ecs, e, COMPONENT_NUMBER)) {
-      struct number_component *m = (struct number_component *)recs_entity_get_component(ecs, e, COMPONENT_NUMBER);
-      printf("Number: %llu\n", m->num);
+    if(n != NULL) {
+      printf("Number: %llu\n", n->num);
     }
 
     const char *has_tag_a_str = recs_entity_has_tag(ecs, e, TAG_A) ? "true" : "false";
@@ -104,8 +103,12 @@ int main(void) {
     .message = "Hello, There"
   };
 
-  recs_entity_add_component(ecs, e, COMPONENT_MESSAGE, &m);
-  recs_entity_add_component(ecs, e, COMPONENT_NUMBER, &n);
+  RECS_ENTITY_ADD_COMP(ecs, e, m);
+  RECS_ENTITY_ADD_COMP(ecs, e, n);
+
+  //can also use these functions if you don't want to use macros
+  //recs_entity_add_component(ecs, e, COMPONENT_MESSAGE, &m);
+  //recs_entity_add_component(ecs, e, COMPONENT_NUMBER, &n);
 
   //assign 2 tags to this new entity
   recs_entity_add_tag(ecs, e, TAG_A);

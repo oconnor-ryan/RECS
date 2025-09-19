@@ -23,27 +23,24 @@ struct number_component {
 };
 
 
-// define component IDs. Make sure the components and tags
-// are valued starting at 0, 1, 2, ... (this is what C does by default).
 
-enum component {
-  COMPONENT_MESSAGE, //associated with 'struct message_component'
-  COMPONENT_NUMBER   //associated with 'struct number_component'
-};
+RECS_INIT_COMP_IDS(component, COMPONENT_MESSAGE, COMPONENT_NUMBER);
+RECS_INIT_TAG_IDS(tag, TAG_A, TAG_B);
+RECS_INIT_SYS_GRP_IDS(system_group, SYSTEM_GROUP_A, SYSTEM_GROUP_B);
 
-enum tag {
-  TAG_A,
-  TAG_B
-};
 
-enum system_group {
-  SYSTEM_GROUP_A,
-  SYSTEM_GROUP_B,
 
-};
+//user must define mapper to convert types to ids in order to use RECS_MAP_COMP_TO_ID macro. Note that the 
+//compiler will warn you for not defining this automatically when using RECS_MAP_COMP_TO_ID().
+#define RECS_COMP_TO_ID_MAPPER \
+  struct message_component: COMPONENT_MESSAGE, \
+  struct number_component: COMPONENT_NUMBER 
+
+
 
 //define our systems
 void system_print_message(struct recs *ecs) {
+
   printf("========== System Print Message ==========\n");
 
   //iterate through every entity
@@ -57,7 +54,8 @@ void system_print_message(struct recs *ecs) {
     //check if our entity has a specific component, if it does, grab that component
     //and do something with it.
     if(recs_entity_has_component(ecs, e, COMPONENT_MESSAGE)) {
-      struct message_component *m = (struct message_component *)recs_entity_get_component(ecs, e, COMPONENT_MESSAGE);
+      struct message_component *m = recs_entity_get_component(ecs, e, RECS_MAP_COMP_PTR_TO_ID(m));
+
       printf("Message: %s\n", m->message);
     }
     printf("End of Entity %u\n\n", e);
@@ -80,7 +78,7 @@ void system_print_number(struct recs *ecs) {
     printf("Entity Id: %u\n", e);
 
     if(recs_entity_has_component(ecs, e, COMPONENT_NUMBER)) {
-      struct number_component *m = (struct number_component *)recs_entity_get_component(ecs, e, COMPONENT_NUMBER);
+      struct number_component *m = recs_entity_get_component(ecs, e, RECS_MAP_COMP_PTR_TO_ID(m));
       printf("Number: %llu\n", m->num);
     }
     printf("End of Entity %u\n\n", e);

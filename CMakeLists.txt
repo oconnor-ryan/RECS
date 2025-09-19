@@ -22,7 +22,7 @@ add_library(${ECS} STATIC
 )
 
 #-Werror was removed
-target_compile_options(${ECS} PUBLIC -fcolor-diagnostics -fansi-escape-codes -g -std=c99 -Wall -Wextra -pedantic  -Wundef)
+target_compile_options(${ECS} PUBLIC -fcolor-diagnostics -fansi-escape-codes -g -std=c11 -Wall -Wextra -pedantic  -Wundef)
 
 
 target_include_directories(${ECS} PUBLIC 
