@@ -5,6 +5,17 @@
 // #define RECS_FREE(ptr) <custom free() here>
 // #define RECS_ASSERT(boolean) <custom assert() here>
 
+
+//before including "recs.h", you should define the max sizes to what you need in your program,
+//and define the RECS_IMPLEMENTATION macro to properly include the implementation of RECS into your project.
+
+#define RECS_MAX_COMPONENTS 2
+#define RECS_MAX_TAGS 2
+#define RECS_MAX_ENTITIES 2
+#define RECS_MAX_SYSTEMS 2
+#define RECS_MAX_SYS_GROUPS 1
+#define RECS_IMPLEMENTATION
+
 #include "recs.h"
 
 
@@ -66,12 +77,15 @@ void system_print_message(struct recs *ecs) {
 
 void system_print_number_only(struct recs *ecs) {
   uint32_t id_index = 0;
+  const recs_comp_bitmask mask = recs_bitmask_create(
+    RECS_BITMASK_CREATE_COMP_ARG(1, COMPONENT_NUMBER), 
+    RECS_BITMASK_CREATE_TAG_ARG(2, TAG_A, TAG_B)
+  );
+
   recs_entity e;
   //only iterate though entities with the COMPONENT_NUMBER component and the 
-  //tags TAG_A and TAG_B. Note that RECS_COMP_MASK and RECS_TAG_MASK should only be used
-  //within the recs_entity_get_with_comps(), recs_entity_has_components(), and recs_entity_has_tags()
-  //function calls.
-  while((e = recs_entity_get_with_comps(ecs, RECS_COMP_MASK(1, COMPONENT_NUMBER), RECS_TAG_MASK(2, TAG_A, TAG_B), &id_index)) != RECS_NO_ENTITY_ID) {
+  //tags TAG_A and TAG_B. 
+  while((e = recs_entity_get_next_with_comps(ecs, mask, &id_index)) != RECS_NO_ENTITY_ID) {
     struct number_component *n = recs_entity_get_component(ecs, e, RECS_MAP_COMP_PTR_TO_ID(n));
     printf("Entity %d with TAG_A and TAG_B has number %llu\n", e, n->num);
   }
@@ -80,7 +94,7 @@ void system_print_number_only(struct recs *ecs) {
 int main(void) {
 
   //attempt to allocate and initialize our ECS
-  struct recs *ecs = recs_init(2, 2, 2, 2, 2, NULL);
+  struct recs *ecs = recs_init(NULL);
 
   //will fail if we fail to allocate enough memory for the ECS.
   if(ecs == NULL) {
