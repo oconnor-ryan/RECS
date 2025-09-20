@@ -64,6 +64,19 @@ void system_print_message(struct recs *ecs) {
   }
 }
 
+void system_print_number_only(struct recs *ecs) {
+  uint32_t id_index = 0;
+  recs_entity e;
+  //only iterate though entities with the COMPONENT_NUMBER component and the 
+  //tags TAG_A and TAG_B. Note that RECS_COMP_MASK and RECS_TAG_MASK should only be used
+  //within the recs_entity_get_with_comps(), recs_entity_has_components(), and recs_entity_has_tags()
+  //function calls.
+  while((e = recs_entity_get_with_comps(ecs, RECS_COMP_MASK(1, COMPONENT_NUMBER), RECS_TAG_MASK(2, TAG_A, TAG_B), &id_index)) != RECS_NO_ENTITY_ID) {
+    struct number_component *n = recs_entity_get_component(ecs, e, RECS_MAP_COMP_PTR_TO_ID(n));
+    printf("Entity %d with TAG_A and TAG_B has number %llu\n", e, n->num);
+  }
+}
+
 int main(void) {
 
   //attempt to allocate and initialize our ECS
@@ -90,6 +103,7 @@ int main(void) {
 
   //register system and assign it with the type "UPDATE"
   recs_system_register(ecs, system_print_message, SYSTEM_GROUP_UPDATE);
+  recs_system_register(ecs, system_print_number_only, SYSTEM_GROUP_UPDATE);
 
 
   //initialize an entity

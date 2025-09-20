@@ -339,3 +339,35 @@ void* recs_component_get(struct recs *recs, recs_component c, uint32_t index) {
   struct component_pool *p = recs->recs_component_stores + c;
   return p->buffer + (index * p->component_size);
 }
+
+int recs_entity_has_components(struct recs *recs, recs_entity e, uint32_t num_comps, recs_component *c) {
+  for(uint32_t i = 0; i < num_comps; i++) {
+    if(!recs_entity_has_component(recs, e, c[i])) {
+      return 0;
+    }
+  }
+  return 1;
+}
+
+int recs_entity_has_tags(struct recs *recs, recs_entity e, uint32_t num_tags, recs_tag *t) {
+  for(uint32_t i = 0; i < num_tags; i++) {
+    if(!recs_entity_has_tag(recs, e, t[i])) {
+      return 0;
+    }
+  }
+  return 1;
+}
+
+
+
+recs_entity recs_entity_get_with_comps(struct recs *ecs, uint32_t num_comps, recs_component *comp_ids, uint32_t num_tags, recs_tag *tags, uint32_t *index) {
+  for(; (*index) < ecs->ent_man.num_active_entities; (*index)++) {
+    recs_entity e = ecs->ent_man.set_of_ids[*index];
+    if(recs_entity_has_components(ecs, e, num_comps, comp_ids) && recs_entity_has_tags(ecs, e, num_tags, tags)) {
+      (*index)++;
+      return e;
+    }
+  }
+  return RECS_NO_ENTITY_ID;
+}
+

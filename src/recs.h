@@ -78,6 +78,11 @@ typedef void (*recs_system_func)(struct recs *ecs);
 
 #define RECS_ENTITY_ADD_COMP(ecs, entity, comp_var) recs_entity_add_component(ecs, entity, RECS_MAP_COMP_TO_ID(comp_var), &comp_var)
 
+
+#define RECS_COMP_MASK(num_comps, ...) num_comps, (recs_component[]){__VA_ARGS__}
+#define RECS_TAG_MASK(num_tags, ...) num_tags, (recs_tag[]){__VA_ARGS__}
+
+
 recs recs_init(uint32_t max_entities, uint32_t max_components, uint32_t max_tags, uint32_t max_systems, uint32_t max_system_groups, void *context);
 void recs_free(struct recs *recs);
 
@@ -116,9 +121,18 @@ void recs_entity_remove_all_components(struct recs *recs, recs_entity e);
 int recs_entity_has_component(struct recs *recs, recs_entity e, recs_component c);
 int recs_entity_has_tag(struct recs *recs, recs_entity e, recs_tag tag);
 
+int recs_entity_has_components(struct recs *recs, recs_entity e, uint32_t num_comps, recs_component *c);
+int recs_entity_has_tags(struct recs *recs, recs_entity e, uint32_t num_tags, recs_tag *t);
+
+
+
 void* recs_entity_get_component(struct recs *recs, recs_entity e, recs_component c);
 
 
+//get the first entity starting at start_index that contains the components and tags listed in comp_ids and tags.
+//This also updates start_index to the next index to iterate at when calling this in a loop
+
+recs_entity recs_entity_get_with_comps(struct recs *ecs, uint32_t num_comps, recs_component *comp_ids, uint32_t num_tags, recs_tag *tags, uint32_t *start_index);
 
 
 #endif// RECS_H
