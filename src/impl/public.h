@@ -54,6 +54,12 @@ typedef struct recs_comp_bitmask {
   uint8_t bytes[RECS_COMP_BITMASK_SIZE];
 } recs_comp_bitmask;
 
+typedef struct recs_entity_iterator {
+  recs_entity current_entity;
+  uint32_t index;
+  recs_comp_bitmask mask;
+} recs_ent_iter;
+
 
 typedef struct recs *recs;
 
@@ -161,10 +167,10 @@ void* recs_entity_get_component(struct recs *recs, recs_entity e, recs_component
 
 recs_comp_bitmask recs_bitmask_create(const uint32_t num_comps, const recs_component *comps, const uint32_t num_tags, const recs_tag *tags);
 
-//get the first entity starting at start_index that contains the components and tags listed in comp_ids and tags.
-//This also updates start_index to the next index to iterate at when calling this in a loop
+recs_ent_iter recs_ent_iter_init(recs_comp_bitmask mask);
 
-recs_entity recs_entity_get_next_with_comps(struct recs *ecs, recs_comp_bitmask mask, uint32_t *start_index);
+uint8_t recs_ent_iter_has_next(struct recs *ecs, recs_ent_iter *iter);
+uint8_t recs_ent_iter_next(struct recs *ecs, recs_ent_iter *iter);
 
 
 

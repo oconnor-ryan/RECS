@@ -327,15 +327,28 @@ recs_comp_bitmask recs_bitmask_create(const uint32_t num_comps, const recs_compo
 }
 
 
-
-recs_entity recs_entity_get_next_with_comps(struct recs *ecs, struct recs_comp_bitmask mask, uint32_t *index) {
-  for(; (*index) < ecs->ent_man.num_active_entities; (*index)++) {
-    recs_entity e = ecs->ent_man.set_of_ids[*index];
-    if(recs_entity_has_components(ecs, e, mask)) {
-      (*index)++;
-      return e;
-    }
-  }
-  return RECS_NO_ENTITY_ID;
+recs_ent_iter recs_ent_iter_init(recs_comp_bitmask mask) {
+  return (recs_ent_iter) {
+    .current_entity = RECS_NO_ENTITY_ID,
+    .index = 0,
+    .mask = mask
+  };
 }
 
+uint8_t recs_ent_iter_has_next(struct recs *ecs, recs_ent_iter *iter) {
+  return iter->index < ecs->ent_man.num_active_entities;
+}
+
+uint8_t recs_ent_iter_next(struct recs *ecs, recs_ent_iter *iter) {
+
+  for(; iter->index < ecs->ent_man.num_active_entities; iter->index++) {
+    recs_entity e = ecs->ent_man.set_of_ids[iter->index];
+    if(recs_entity_has_components(ecs, e, iter->mask)) {
+      iter->current_entity = e;
+      iter->index++;
+      return 1;
+    }
+  }
+  iter->current_entity = RECS_NO_ENTITY_ID;
+  return 0;
+}

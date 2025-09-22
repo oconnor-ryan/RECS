@@ -76,18 +76,19 @@ void system_print_message(struct recs *ecs) {
 }
 
 void system_print_number_only(struct recs *ecs) {
-  uint32_t id_index = 0;
   const recs_comp_bitmask mask = recs_bitmask_create(
     RECS_BITMASK_CREATE_COMP_ARG(1, COMPONENT_NUMBER), 
     RECS_BITMASK_CREATE_TAG_ARG(2, TAG_A, TAG_B)
   );
 
-  recs_entity e;
+  recs_ent_iter iter = recs_ent_iter_init(mask);
+
   //only iterate though entities with the COMPONENT_NUMBER component and the 
   //tags TAG_A and TAG_B. 
-  while((e = recs_entity_get_next_with_comps(ecs, mask, &id_index)) != RECS_NO_ENTITY_ID) {
-    struct number_component *n = recs_entity_get_component(ecs, e, RECS_MAP_COMP_PTR_TO_ID(n));
-    printf("Entity %d with TAG_A and TAG_B has number %llu\n", e, n->num);
+  while(recs_ent_iter_has_next(ecs, &iter)) {
+    recs_ent_iter_next(ecs, &iter);
+    struct number_component *n = recs_entity_get_component(ecs, iter.current_entity, RECS_MAP_COMP_PTR_TO_ID(n));
+    printf("Entity %d with TAG_A and TAG_B has number %llu\n", iter.current_entity, n->num);
   }
 }
 
