@@ -26,34 +26,28 @@ struct number_component {
 
 
 /*
-  You have the option to not use any of the macros defined in the RECS library, such as:
-  RECS_INIT_COMP_IDS
-  RECS_INIT_TAG_IDS
-  RECS_INIT_SYS_GRP_IDS
-  RECS_COMP_TO_ID_MAPPER,
-  RECS_MAP_COMP_TO_ID,
-  RECS_MAP_COMP_PTR_TO_ID,
-  RECS_ENTITY_ADD_COMP
-
-  However, you will need to be careful to ensure that:
-  - All enums for tags, components, and system_groups have values that start at 0 and increase by 1 (sinc
-  these are indices to arrays)
-  - Remember which component enum matches with what data structure or type you used to define the component with.
-
-
-
+  Make sure that the enums used for components fall in 
+  the range 0 to YOUR_MAX_COMPONENTS-1, inclusive.
 */
-
 enum component {
   COMPONENT_MESSAGE, //associated with 'struct message_component'
   COMPONENT_NUMBER   //associated with 'struct number_component'
 };
 
+/*
+  Make sure that the enums used for tags fall in 
+  the range 0 to YOUR_MAX_TAGS-1, inclusive.
+*/
 enum tag {
   TAG_A,
   TAG_B
 };
 
+
+/*
+  Make sure that the enums used for system groups fall in 
+  the range 0 to YOUR_MAX_SYSTEM_GROUPS-1, inclusive.
+*/
 enum system_group {
   SYSTEM_GROUP_UPDATE
 };

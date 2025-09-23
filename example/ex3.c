@@ -36,12 +36,13 @@ RECS_INIT_SYS_GRP_IDS(system_group, SYSTEM_GROUP_A, SYSTEM_GROUP_B);
 
 
 
-//user must define mapper to convert types to ids in order to use RECS_MAP_COMP_TO_ID macro. Note that the 
-//compiler will warn you for not defining this automatically when using RECS_MAP_COMP_TO_ID().
-#define RECS_COMP_TO_ID_MAPPER \
+//optional. This just maps a pointer variable's type to the component enum
+//we set in the previous few declarations.
+#define MAP_COMP_PTR_TO_ID(var_ptr) _Generic((*var_ptr), \
   struct message_component: COMPONENT_MESSAGE, \
-  struct number_component: COMPONENT_NUMBER 
+  struct number_component: COMPONENT_NUMBER)
 
+  
 
 
 //define our systems
@@ -60,7 +61,7 @@ void system_print_message(struct recs *ecs) {
     //check if our entity has a specific component, if it does, grab that component
     //and do something with it.
     if(recs_entity_has_component(ecs, e, COMPONENT_MESSAGE)) {
-      struct message_component *m = recs_entity_get_component(ecs, e, RECS_MAP_COMP_PTR_TO_ID(m));
+      struct message_component *m = recs_entity_get_component(ecs, e, MAP_COMP_PTR_TO_ID(m));
 
       printf("Message: %s\n", m->message);
     }
@@ -84,7 +85,7 @@ void system_print_number(struct recs *ecs) {
     printf("Entity Id: %u\n", e);
 
     if(recs_entity_has_component(ecs, e, COMPONENT_NUMBER)) {
-      struct number_component *m = recs_entity_get_component(ecs, e, RECS_MAP_COMP_PTR_TO_ID(m));
+      struct number_component *m = recs_entity_get_component(ecs, e, MAP_COMP_PTR_TO_ID(m));
       printf("Number: %llu\n", m->num);
     }
     printf("End of Entity %u\n\n", e);

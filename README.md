@@ -4,32 +4,31 @@
 
 This is a basic implementation of a generic Entity-Component-System. This uses sparse sets and component pools for storing component data and mapping entity IDs to their components. 
 
-## Including this Library
+## Building This Library
 
-Since this is a header-only library, there is no need to compile this library, just add the `recs.h` file to your include
-directory and add the following to ONE of your translation units (.c file):
+To build the RECS library, you will need the following dependencies:
+- CMake >= 3.15
+- A C compiler that supports C99 standard
 
-```c
-#define RECS_MAX_COMPONENTS //insert integer between 0 and (2^32 - RECS_MAX_TAGS) here
-#define RECS_MAX_TAGS //insert integer between 0 and (2^32 - RECS_MAX_COMPONENTS) here
-#define RECS_MAX_ENTITIES //insert integer between 0 and (2^32 - 2) here
-#define RECS_MAX_SYSTEMS //insert integer between 0 and (2^32 - 1) here
-#define RECS_MAX_SYS_GROUPS //insert integer between 0 and (2^32 - 1) here
-#define RECS_IMPLEMENTATION //Include this ONLY ONE in your translation unit
+Before building with CMake, you must set up your build folder using:
+`cmake -S . -B build`
 
-#include "recs.h"
-```
 
-For all other files, you can simply use `#include "recs.h"` to use the RECS library.
+To build the library, you will run:
+`cmake --build build --target recs`
+
+Once you generate the library file, you will also need to 
+grab the `recs.h` file within the `src` directory and include it into
+your project. This header allows you to interface with the library you
+just generated.
+
 
 ## Building The Example Code (Optional)
-
-
 
 You will need the following dependencies installed in order to build
 the examples that I included:
 - CMake >= 3.15
-- A C compiler that supports C11 standard.
+- A C compiler that supports C11 standard (some examples utilize C11 features for convenience)
 
 Before building with CMake, you must set up your build folder using:
 `cmake -S . -B build`
@@ -93,16 +92,11 @@ By organizing your game objects and their behaviors this way, you can easily add
 // #define RECS_FREE(ptr) <custom free() here>
 // #define RECS_ASSERT(boolean) <custom assert() here>
 
-
-//before including "recs.h", you should define the max sizes to what you need in your program,
-//and define the RECS_IMPLEMENTATION macro to properly include the implementation of RECS into your project.
-
 #define RECS_MAX_COMPONENTS 2
 #define RECS_MAX_TAGS 2
 #define RECS_MAX_ENTITIES 2
 #define RECS_MAX_SYSTEMS 2
 #define RECS_MAX_SYS_GROUPS 1
-#define RECS_IMPLEMENTATION
 
 #include "recs.h"
 
@@ -126,12 +120,6 @@ RECS_INIT_TAG_IDS(tag, TAG_A, TAG_B);
 RECS_INIT_SYS_GRP_IDS(system_group, SYSTEM_GROUP_UPDATE);
 
 
-//user must define RECS_COMP_TO_ID_MAPPER to convert types to ids in order to use RECS_MAP_COMP_TO_ID macro. 
-//for each entry, type it in the format "<type>: <integer_value>", with a comma separating each entry.
-#define RECS_COMP_TO_ID_MAPPER \
-  struct message_component: COMPONENT_MESSAGE, \
-  struct number_component: COMPONENT_NUMBER 
-
 
 //define our systems
 void system_print_message(struct recs *ecs) {
@@ -142,9 +130,8 @@ void system_print_message(struct recs *ecs) {
     //grab our entity ID
     recs_entity e = recs_entity_get(ecs, i);
 
-    //use RECS_MAP_COMP_PTR_TO_ID macro to retrieve component ID based on the type pointed to by variable 'm' and 'n'
-    struct message_component *m = recs_entity_get_component(ecs, e, RECS_MAP_COMP_PTR_TO_ID(m));
-    struct number_component *n = recs_entity_get_component(ecs, e, RECS_MAP_COMP_PTR_TO_ID(n));
+    struct message_component *m = recs_entity_get_component(ecs, e, COMPONENT_MESSAGE);
+    struct number_component *n = recs_entity_get_component(ecs, e, COMPONENT_NUMBER);
 
     //check if our entity has a specific component, if it does, do something with it.
     if(m != NULL) {
@@ -164,28 +151,31 @@ void system_print_message(struct recs *ecs) {
 }
 
 void system_print_number_only(struct recs *ecs) {
-  uint32_t id_index = 0;
+  //allocate enough memory to store bitmask
+  uint8_t mask_buf[RECS_GET_BITMASK_SIZE(RECS_MAX_COMPONENTS, RECS_MAX_TAGS)];
+  recs_comp_bitmask mask = mask_buf;
 
-  //create a bitmask to only iterate though entities that 
-  //have a COMPONENT_NUMBER and the tags TAG_A and TAG_B
-  const recs_comp_bitmask mask = recs_bitmask_create(
+  //initialize allocated bitmask with the tags and components we want to retrieve
+  recs_bitmask_create(ecs, mask,
     RECS_BITMASK_CREATE_COMP_ARG(1, COMPONENT_NUMBER), 
     RECS_BITMASK_CREATE_TAG_ARG(2, TAG_A, TAG_B)
   );
 
-  recs_entity e;
+  recs_ent_iter iter = recs_ent_iter_init(mask);
+
   //only iterate though entities with the COMPONENT_NUMBER component and the 
-  //tags TAG_A and TAG_B.
-  while((e = recs_entity_get_next_with_comps(ecs, mask, &id_index)) != RECS_NO_ENTITY_ID) {
-    struct number_component *n = recs_entity_get_component(ecs, e, RECS_MAP_COMP_PTR_TO_ID(n));
-    printf("Entity %d with TAG_A and TAG_B has number %llu\n", e, n->num);
+  //tags TAG_A and TAG_B. 
+  while(recs_ent_iter_has_next(ecs, &iter)) {
+    recs_ent_iter_next(ecs, &iter);
+    struct number_component *n = recs_entity_get_component(ecs, iter.current_entity, COMPONENT_NUMBER);
+    printf("Entity %d with TAG_A and TAG_B has number %llu\n", iter.current_entity, n->num);
   }
 }
 
 int main(void) {
 
   //attempt to allocate and initialize our ECS
-  struct recs *ecs = recs_init(NULL);
+  struct recs *ecs = recs_init(RECS_MAX_ENTITIES, RECS_MAX_COMPONENTS, RECS_MAX_TAGS, RECS_MAX_SYSTEMS, RECS_MAX_SYS_GROUPS, NULL);
 
   //will fail if we fail to allocate enough memory for the ECS.
   if(ecs == NULL) {
@@ -222,12 +212,8 @@ int main(void) {
     .message = "Hello, There"
   };
 
-  RECS_ENTITY_ADD_COMP(ecs, e, m);
-  RECS_ENTITY_ADD_COMP(ecs, e, n);
-
-  //can also use these functions if you don't want to use macros
-  //recs_entity_add_component(ecs, e, COMPONENT_MESSAGE, &m);
-  //recs_entity_add_component(ecs, e, COMPONENT_NUMBER, &n);
+  recs_entity_add_component(ecs, e, COMPONENT_MESSAGE, &m);
+  recs_entity_add_component(ecs, e, COMPONENT_NUMBER, &n);
 
   //assign 2 tags to this new entity
   recs_entity_add_tag(ecs, e, TAG_A);

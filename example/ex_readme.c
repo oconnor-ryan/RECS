@@ -5,14 +5,11 @@
 // #define RECS_FREE(ptr) <custom free() here>
 // #define RECS_ASSERT(boolean) <custom assert() here>
 
-
-
 #define RECS_MAX_COMPONENTS 2
 #define RECS_MAX_TAGS 2
 #define RECS_MAX_ENTITIES 2
 #define RECS_MAX_SYSTEMS 2
 #define RECS_MAX_SYS_GROUPS 1
-
 
 #include "recs.h"
 
@@ -36,14 +33,6 @@ RECS_INIT_TAG_IDS(tag, TAG_A, TAG_B);
 RECS_INIT_SYS_GRP_IDS(system_group, SYSTEM_GROUP_UPDATE);
 
 
-//optional. This just maps a pointer variable's type to the component enum
-//we set in the previous few declarations.
-#define MAP_COMP_PTR_TO_ID(var_ptr) _Generic((*var_ptr), \
-  struct message_component: COMPONENT_MESSAGE, \
-  struct number_component: COMPONENT_NUMBER)
-
-  
-
 
 //define our systems
 void system_print_message(struct recs *ecs) {
@@ -54,8 +43,8 @@ void system_print_message(struct recs *ecs) {
     //grab our entity ID
     recs_entity e = recs_entity_get(ecs, i);
 
-    struct message_component *m = recs_entity_get_component(ecs, e, MAP_COMP_PTR_TO_ID(m));
-    struct number_component *n = recs_entity_get_component(ecs, e, MAP_COMP_PTR_TO_ID(n));
+    struct message_component *m = recs_entity_get_component(ecs, e, COMPONENT_MESSAGE);
+    struct number_component *n = recs_entity_get_component(ecs, e, COMPONENT_NUMBER);
 
     //check if our entity has a specific component, if it does, do something with it.
     if(m != NULL) {
@@ -75,9 +64,11 @@ void system_print_message(struct recs *ecs) {
 }
 
 void system_print_number_only(struct recs *ecs) {
+  //allocate enough memory to store bitmask
   uint8_t mask_buf[RECS_GET_BITMASK_SIZE(RECS_MAX_COMPONENTS, RECS_MAX_TAGS)];
-
   recs_comp_bitmask mask = mask_buf;
+
+  //initialize allocated bitmask with the tags and components we want to retrieve
   recs_bitmask_create(ecs, mask,
     RECS_BITMASK_CREATE_COMP_ARG(1, COMPONENT_NUMBER), 
     RECS_BITMASK_CREATE_TAG_ARG(2, TAG_A, TAG_B)
@@ -89,7 +80,7 @@ void system_print_number_only(struct recs *ecs) {
   //tags TAG_A and TAG_B. 
   while(recs_ent_iter_has_next(ecs, &iter)) {
     recs_ent_iter_next(ecs, &iter);
-    struct number_component *n = recs_entity_get_component(ecs, iter.current_entity, MAP_COMP_PTR_TO_ID(n));
+    struct number_component *n = recs_entity_get_component(ecs, iter.current_entity, COMPONENT_NUMBER);
     printf("Entity %d with TAG_A and TAG_B has number %llu\n", iter.current_entity, n->num);
   }
 }

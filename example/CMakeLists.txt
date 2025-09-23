@@ -1,3 +1,21 @@
+#####################
+# Example Reame
+#####################
+
+set(EXAMPLE_README "example_readme")
+
+add_executable(${EXAMPLE_README} 
+  ex_readme.c
+)
+
+# -Werror is very annoying, especially for testing
+target_compile_options(${EXAMPLE_README} PRIVATE -fcolor-diagnostics -fansi-escape-codes -g -std=c11 -Wall -Wextra -pedantic  -Wundef)
+
+target_include_directories(${EXAMPLE_README} PUBLIC 
+  ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(${EXAMPLE_README} ${ECS})
 
 
 #####################

@@ -4,7 +4,7 @@ project(recs VERSION 0.1 LANGUAGES C)
 set(CMAKE_BUILD_TYPE "Debug")
 
 
-set(CMAKE_C_STANDARD 11) # Requires C11 standard
+set(CMAKE_C_STANDARD 99) # Requires C99 standard
 
 enable_testing()
 
@@ -19,7 +19,7 @@ add_library(${ECS} STATIC
 )
 
 #-Werror was removed
-target_compile_options(${ECS} PRIVATE -fcolor-diagnostics -fansi-escape-codes -g -std=c11 -Wall -Wextra -pedantic  -Wundef)
+target_compile_options(${ECS} PRIVATE -fcolor-diagnostics -fansi-escape-codes -g -std=c99 -Wall -Wextra -pedantic  -Wundef)
 
 
 target_include_directories(${ECS} PRIVATE 
