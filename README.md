@@ -238,7 +238,7 @@ int main(void) {
 ## Potential Upcoming Features
 - Allow more efficient way to query entities within systems based on their components and tags.
   - Perhaps users could tell the ECS what types of queries they want to make on initialization of ECS, that way each entity gets stored within a specific array containing entities with the same set of elements.
-- Create an explicit iterator struct to iterate over entities
+
 
 
 ## External Resources About ECS and Other ECS Projects
