@@ -60,16 +60,15 @@ uint32_t recs_num_active_entities(struct recs *recs) {
 
 recs recs_init(uint32_t max_entities, uint32_t max_components, uint32_t max_tags, uint32_t max_systems, uint32_t max_sys_groups, void *context) {
 
-  uint32_t max_comps = max_components + max_tags;
 
   //RECS_ASSERT that max_comps does not overflow
-  RECS_ASSERT(max_comps > max_components && max_comps > max_tags);
+  RECS_ASSERT((max_components + max_tags) > max_components && (max_components + max_tags) > max_tags);
 
   //RECS_ASSERT that we don't have 2^32 - 1 entities, since the largest 32-bit unsigned
   //integer is used as a marker for something with no entities
   RECS_ASSERT(max_entities-1 != RECS_NO_ENTITY_ID);
 
-  size_t bytes_per_bitmask = 1 + (max_components / 8);
+  size_t bytes_per_bitmask = RECS_GET_BITMASK_SIZE(max_components, max_tags);
 
 
 
