@@ -98,7 +98,6 @@ recs recs_init(uint32_t max_entities, uint32_t max_components, uint32_t max_tags
   uint8_t *system_mapper_buffer =  big_buffer + recs_buffer_size + entity_id_buffer_size + component_pool_buffer_size + bitmask_buffer_size + system_buffer_size;
 
 
-
   ecs->max_registered_components = max_components;
   ecs->max_tags = max_tags;
   ecs->max_registered_systems = max_systems;
@@ -125,6 +124,7 @@ recs recs_init(uint32_t max_entities, uint32_t max_components, uint32_t max_tags
   for(uint32_t i = 0; i < max_sys_groups; i++) {
     ecs->system_group_mappers[i].num_systems = 0;
   }
+
 
   return ecs;
   
@@ -170,6 +170,18 @@ int recs_component_register(struct recs *ecs, recs_component type, uint32_t max_
 }
 
 
+void recs_component_unregister(struct recs *ecs, recs_component type) {
+  struct component_pool *cp = ecs->recs_component_stores + type;
+
+  //iterate through each entity and update their bitmask
+  for(uint32_t i = 0; i < ecs->ent_man.num_active_entities; i++) {
+    recs_entity e = ecs->ent_man.set_of_ids[i];
+    bitmask_set(bitmask_list_get(&ecs->comp_bitmask_list, e), type, 0);
+  }
+  //free memory
+  component_pool_free(cp);
+}
+
 
 
 void recs_system_register(struct recs *ecs, recs_system_func func, recs_system_group group) {
@@ -179,9 +191,6 @@ void recs_system_register(struct recs *ecs, recs_system_func func, recs_system_g
   //each type we register a new system, we need to maintain the correct order of each system such that they are 
   //placed contiguously with systems within the same group id, and that they stay in the order they are registered in.
 
-  //struct recs_system *s = ecs->systems + ecs->num_registered_systems;
-  //s->func = func;
-
   struct system_group_mapper *m = ecs->system_group_mappers + group;
 
   //this is a new group, set the mapper and place system at end of system list
@@ -190,12 +199,15 @@ void recs_system_register(struct recs *ecs, recs_system_func func, recs_system_g
     m->starting_index = ecs->num_registered_systems;
     struct recs_system *s = ecs->systems + ecs->num_registered_systems;
     s->func = func;
+
+
   } else {
     uint32_t system_index = m->starting_index + m->num_systems;
 
     //shift all systems to right starting at current group's last index.
     for(uint32_t i = ecs->num_registered_systems; i > system_index; i--) {
       ecs->systems[i] = ecs->systems[i-1];
+
     }
 
     //update all mappers with starting index >= system_index to increment starting_index by 1
@@ -218,6 +230,8 @@ void recs_system_register(struct recs *ecs, recs_system_func func, recs_system_g
   ecs->num_registered_systems++;
   
 }
+
+
 
 void recs_system_set_context(struct recs *ecs, void *context) {
   ecs->system_context = context;

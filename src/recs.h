@@ -28,6 +28,8 @@
 //TODO: Consider changing this to 0 for easier boolean checking
 #define RECS_NO_ENTITY_ID 0xFFFFFFFF
 
+
+
 //get the size (in bytes) of the bitmask being used to check tags and components
 #define RECS_GET_BITMASK_SIZE(max_components, max_tags) (1 + ((max_components) + (max_tags)) / 8)
 
@@ -81,12 +83,18 @@ void recs_free(struct recs *recs);
 //register a component for entities to use.
 int recs_component_register(struct recs *recs, recs_component type, uint32_t max_instances, size_t comp_size);
 
+//unregisters a component by removing this component from all entities and deleting the 
+//component pool.
+void recs_component_unregister(struct recs *ecs, recs_component type);
+
 //get a component directly from the component pool's raw buffer.
 void* recs_component_get(struct recs *recs, recs_component c, uint32_t index);
 
 
 //register a system under a specific system group
 void recs_system_register(struct recs *recs, recs_system_func func, recs_system_group type);
+
+
 
 //set user-defined context that allows systems to interact with external 
 //data
@@ -96,10 +104,11 @@ void recs_system_set_context(struct recs *recs, void *context);
 //and interact with external data.
 void* recs_system_get_context(struct recs *recs);
 
-
 //run a set of systems within a system group. Each system executes in the 
 //same order as the order were registered in.
-void recs_system_run(struct recs *recs, recs_system_group type);
+void recs_system_run(struct recs *recs, recs_system_group group);
+
+
 
 //check the number of active entities
 uint32_t recs_num_active_entities(struct recs *recs);
