@@ -17,6 +17,8 @@ target_include_directories(${EXAMPLE1} PUBLIC
   ${CMAKE_SOURCE_DIR}/src
 )
 
+target_link_libraries(${EXAMPLE1} ${ECS})
+
 
 
 #####################
@@ -36,6 +38,7 @@ target_compile_options(${EXAMPLE2} PRIVATE -fcolor-diagnostics -fansi-escape-cod
 target_include_directories(${EXAMPLE2} PUBLIC 
   ${CMAKE_SOURCE_DIR}/src
 )
+target_link_libraries(${EXAMPLE2} ${ECS})
 
 
 #####################
@@ -55,3 +58,5 @@ target_compile_options(${EXAMPLE3} PRIVATE -fcolor-diagnostics -fansi-escape-cod
 target_include_directories(${EXAMPLE3} PUBLIC 
   ${CMAKE_SOURCE_DIR}/src
 )
+
+target_link_libraries(${EXAMPLE3} ${ECS})

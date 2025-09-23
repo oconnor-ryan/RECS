@@ -6,15 +6,14 @@
 // #define RECS_ASSERT(boolean) <custom assert() here>
 
 
-//before including "recs.h", you should define the max sizes to what you need in your program,
-//and define the RECS_IMPLEMENTATION macro to properly include the implementation of RECS into your project.
 
 #define RECS_MAX_COMPONENTS 2
 #define RECS_MAX_TAGS 2
 #define RECS_MAX_ENTITIES 2
 #define RECS_MAX_SYSTEMS 2
 #define RECS_MAX_SYS_GROUPS 1
-#define RECS_IMPLEMENTATION
+
+#define RECS_BITMASK_SIZE (1 + (RECS_MAX_COMPONENTS + RECS_MAX_TAGS) / 8)
 
 #include "recs.h"
 
@@ -76,7 +75,9 @@ void system_print_message(struct recs *ecs) {
 }
 
 void system_print_number_only(struct recs *ecs) {
-  const recs_comp_bitmask mask = recs_bitmask_create(
+  uint8_t mask_buf[RECS_BITMASK_SIZE];
+  recs_comp_bitmask mask = mask_buf;
+  recs_bitmask_create(ecs, mask,
     RECS_BITMASK_CREATE_COMP_ARG(1, COMPONENT_NUMBER), 
     RECS_BITMASK_CREATE_TAG_ARG(2, TAG_A, TAG_B)
   );
@@ -95,7 +96,7 @@ void system_print_number_only(struct recs *ecs) {
 int main(void) {
 
   //attempt to allocate and initialize our ECS
-  struct recs *ecs = recs_init(NULL);
+  struct recs *ecs = recs_init(RECS_MAX_ENTITIES, RECS_MAX_COMPONENTS, RECS_MAX_TAGS, RECS_MAX_SYSTEMS, RECS_MAX_SYS_GROUPS, NULL);
 
   //will fail if we fail to allocate enough memory for the ECS.
   if(ecs == NULL) {

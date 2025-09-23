@@ -10,7 +10,6 @@
 #define RECS_MAX_ENTITIES 2
 #define RECS_MAX_SYSTEMS 3
 #define RECS_MAX_SYS_GROUPS 2
-#define RECS_IMPLEMENTATION
 
 #include "recs.h"
 
@@ -157,7 +156,8 @@ int main(void) {
   int num_updates = 1;
 
   //attempt to allocate and initialize our ECS, along with setting the context pointer.
-  struct recs *ecs = recs_init(&num_updates);
+  struct recs *ecs = recs_init(RECS_MAX_ENTITIES, RECS_MAX_COMPONENTS, RECS_MAX_TAGS, RECS_MAX_SYSTEMS, RECS_MAX_SYS_GROUPS, &num_updates);
+
 
   //will fail if we fail to allocate enough memory for the ECS.
   if(ecs == NULL) {

@@ -1,43 +1,17 @@
-#include "public.h"
-#include <stdint.h>
-#include <string.h>
-
-/* 
-  Component Pool Section
-
-  Stores the raw data of every entity's components and maps entity IDs to components within its raw buffer.
-  This also handles creating and freeing component pools.
-*/
-
-struct component_pool {
-  char *buffer;
-  uint32_t component_size;
-
-  uint32_t num_components;
-  uint32_t max_components;
-
-  //rather than implementing a hash map, we will use 
-  //arrays to map entity IDs to component indexes.
-  uint32_t entity_to_comp[RECS_MAX_ENTITIES];
-
-  //this is needed since when adding/removing components, we keep 
-  //component data contiguous by moving the last component into the component
-  //being removed. This requires us to keep track of each component->entity mapping
-  //so that we can properly update our entity->comp mapping.
-  recs_entity *comp_to_entity;
-
-};
+#include "ecs/component_pool.h"
 
 #define NO_COMP_ID RECS_NO_ENTITY_ID
 
 
-static int component_pool_init(struct component_pool *ca, uint32_t component_size, uint32_t max_components) {
+int component_pool_init(struct component_pool *ca, uint32_t component_size, uint32_t max_components, uint32_t max_entities) {
   ca->num_components = 0;
   ca->component_size = component_size;
   ca->max_components = max_components;
 
   //allocate buffer
   size_t comp_buffer_size = component_size * max_components;
+
+  size_t ent_to_comp_buffer_size = sizeof(uint32_t) * max_entities;
 
   //only allocate to max_components since that is usually equal to 
   //or less than the max_entities, making memory storage slightly more efficient.
@@ -46,15 +20,17 @@ static int component_pool_init(struct component_pool *ca, uint32_t component_siz
 
   //allocate all memory at once needed to store raw component data,
   //entity to component mapper, and component to entity mapper.
-  char *buffer = (char*)RECS_MALLOC(comp_buffer_size + comp_to_ent_buffer_size);
+  char *buffer = (char*)RECS_MALLOC(comp_buffer_size + ent_to_comp_buffer_size + comp_to_ent_buffer_size);
   if(buffer == NULL) {
     return 0;
   }
   char *comp_buffer = buffer;
-  char *comp_to_ent_buffer = buffer + comp_buffer_size;
+  char *ent_to_comp_buffer = buffer + comp_buffer_size;
+  char *comp_to_ent_buffer = buffer + comp_buffer_size + ent_to_comp_buffer_size;
 
   ca->buffer = comp_buffer;
   ca->comp_to_entity = (uint32_t*)comp_to_ent_buffer;
+  ca->entity_to_comp = (recs_entity*) ent_to_comp_buffer;
 
   //mark all components as not belonging to any entity. 
   //Because this game will never get to a point where there are 65000 entities or
@@ -65,14 +41,14 @@ static int component_pool_init(struct component_pool *ca, uint32_t component_siz
     ca->comp_to_entity[i] = RECS_NO_ENTITY_ID;
   }
 
-  for(uint32_t i = 0; i < RECS_MAX_ENTITIES; i++) {
+  for(uint32_t i = 0; i < max_entities; i++) {
     ca->entity_to_comp[i] = NO_COMP_ID;
   }
   
   return 1;
 }
 
-static void *component_pool_get(struct component_pool *ca, recs_entity e) {
+void *component_pool_get(struct component_pool *ca, recs_entity e) {
   
   uint32_t component_index = ca->entity_to_comp[e];
 
@@ -83,7 +59,7 @@ static void *component_pool_get(struct component_pool *ca, recs_entity e) {
 }
 
 
-static void component_pool_add(struct component_pool *ca, recs_entity e, void *component) {
+void component_pool_add(struct component_pool *ca, recs_entity e, void *component) {
   RECS_ASSERT(ca->num_components < ca->max_components);
 
   uint32_t component_index = ca->num_components;
@@ -97,7 +73,7 @@ static void component_pool_add(struct component_pool *ca, recs_entity e, void *c
 
 }
 
-static void component_pool_remove(struct component_pool *ca, recs_entity e) {
+void component_pool_remove(struct component_pool *ca, recs_entity e) {
   uint32_t component_index = ca->entity_to_comp[e];
 
   if(component_index == NO_COMP_ID) {
@@ -128,7 +104,7 @@ static void component_pool_remove(struct component_pool *ca, recs_entity e) {
 
 }
 
-static void component_pool_free(struct component_pool *ca) {
+void component_pool_free(struct component_pool *ca) {
   //remember we made 1 big allocation starting at ca->buffer,
   //so we only need to RECS_FREE that one buffer.
   RECS_FREE(ca->buffer);

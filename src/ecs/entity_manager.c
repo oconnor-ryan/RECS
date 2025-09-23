@@ -1,18 +1,4 @@
-
-#include "public.h"
-
-/*
-  Entity Manager Section:
-
-  This section handles the active Entity ID pool, returning IDs that are available for use as well as making IDs that
-  were deleted ready for reuse.
-*/
-
-struct entity_manager {
-  //stores list of all unused entity IDs.
-  recs_entity set_of_ids[RECS_MAX_ENTITIES];
-  uint32_t num_active_entities;
-};
+#include "ecs/entity_manager.h"
 
 /*
   We first initialize a set with the IDs 1 through MAX_ENTITIES.
@@ -49,19 +35,21 @@ struct entity_manager {
 
 */
 
-static void entity_manager_init(struct entity_manager *em) {
+void entity_manager_init(struct entity_manager *em, uint8_t *buffer, uint32_t max_entities) {
   em->num_active_entities = 0;
+  em->max_entities = max_entities;
+  em->set_of_ids = (recs_entity*)buffer;
 
   //add initial entity IDs to set. 
-  for(recs_entity i = 0; i < RECS_MAX_ENTITIES; i++) {
+  for(recs_entity i = 0; i < em->max_entities; i++) {
     em->set_of_ids[i] = i;
   }
 
 }
 
 
-static recs_entity entity_manager_add(struct entity_manager *em) {
-  RECS_ASSERT(em->num_active_entities < RECS_MAX_ENTITIES);
+recs_entity entity_manager_add(struct entity_manager *em) {
+  RECS_ASSERT(em->num_active_entities < em->max_entities);
 
   recs_entity e = em->set_of_ids[em->num_active_entities];
   em->num_active_entities++;
@@ -70,7 +58,7 @@ static recs_entity entity_manager_add(struct entity_manager *em) {
 
 }
 
-static void entity_manager_remove_at_index(struct entity_manager *em, uint32_t active_entity_index) {
+void entity_manager_remove_at_index(struct entity_manager *em, uint32_t active_entity_index) {
   uint32_t i = active_entity_index;
 
   //swap last ACTIVE ID with removed ID.
@@ -82,7 +70,7 @@ static void entity_manager_remove_at_index(struct entity_manager *em, uint32_t a
   em->num_active_entities--;
 }
 
-static void entity_manager_remove(struct entity_manager *em, recs_entity e) {
+void entity_manager_remove(struct entity_manager *em, recs_entity e) {
   RECS_ASSERT(em->num_active_entities != 0);
 
   //this requires a search for the ID.
