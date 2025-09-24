@@ -428,7 +428,7 @@ void recs_bitmask_create(struct recs *ecs, uint8_t *mask, const uint32_t num_com
 
 static recs_entity recs_ent_iter_find(struct recs *ecs, recs_ent_iter *iter) {
   //assert that at least one of the 2 bitmasks are non-null
-  RECS_ASSERT((iter->include_bitmask == NULL && iter->exclude_bitmask != NULL) || (iter->include_bitmask != NULL && iter->exclude_bitmask == NULL));
+  RECS_ASSERT(!(iter->include_bitmask == NULL && iter->exclude_bitmask == NULL));
 
 
   for(; iter->index < ecs->ent_man.num_active_entities; iter->index++) {

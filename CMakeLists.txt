@@ -27,6 +27,8 @@ target_include_directories(${ECS} PRIVATE
 )
 
 add_subdirectory(example)
+add_subdirectory(tests)
+
 
 
 
