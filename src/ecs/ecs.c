@@ -181,6 +181,15 @@ void recs_component_unregister(struct recs *ecs, recs_component type) {
   component_pool_free(cp);
 }
 
+uint32_t recs_component_num_instances(struct recs *recs, recs_component c) {
+  struct component_pool *p = recs->recs_component_stores + c;
+  return p->num_components;
+}
+
+recs_entity recs_component_get_entity(struct recs *recs, recs_component c, uint32_t comp_index) {
+  struct component_pool *p = recs->recs_component_stores + c;
+  return p->comp_to_entity[comp_index];
+}
 
 
 void recs_system_register(struct recs *ecs, recs_system_func func, recs_system_group group) {
@@ -417,13 +426,42 @@ void recs_bitmask_create(struct recs *ecs, uint8_t *mask, const uint32_t num_com
 }
 
 
-recs_ent_iter recs_ent_iter_init(uint8_t *mask) {
-  return (recs_ent_iter) {
-    .current_entity = RECS_NO_ENTITY_ID,
+static recs_entity recs_ent_iter_find(struct recs *ecs, recs_ent_iter *iter) {
+  //assert that at least one of the 2 bitmasks are non-null
+  RECS_ASSERT((iter->include_bitmask == NULL && iter->exclude_bitmask != NULL) || (iter->include_bitmask != NULL && iter->exclude_bitmask == NULL));
+
+
+  for(; iter->index < ecs->ent_man.num_active_entities; iter->index++) {
+    recs_entity e = ecs->ent_man.set_of_ids[iter->index];
+
+    uint8_t has_comps =    iter->include_bitmask == NULL || (iter->include_bitmask != NULL && recs_entity_has_components(ecs, e, iter->include_bitmask));
+    uint8_t has_ex_comps = iter->exclude_bitmask == NULL || (iter->exclude_bitmask != NULL && recs_entity_has_excluded_components(ecs, e, iter->exclude_bitmask));
+
+    if(has_comps && has_ex_comps) {
+      iter->index++;
+      return e;
+    }
+  }
+  
+  return RECS_NO_ENTITY_ID;
+}
+
+recs_ent_iter recs_ent_iter_init(struct recs *ecs, uint8_t *mask) {
+  recs_ent_iter iter = {
+    .next_entity = RECS_NO_ENTITY_ID,
     .index = 0,
     .include_bitmask = mask,
-    .exclude_bitmask = NULL
+    .exclude_bitmask = NULL,
   };
+
+
+  //we need to find the 1st element such that when we call next(), we can obtain the next element.
+  iter.next_entity = recs_ent_iter_find(ecs, &iter);
+
+  //state that this iterator has performed a search for the next entity
+  //iter.checked_for_next = 1;
+
+  return iter;
 }
 
 //  If we want to exclude 0011 0100 
@@ -433,37 +471,36 @@ recs_ent_iter recs_ent_iter_init(uint8_t *mask) {
 //          1111 0100
 //          0011 0100
 
-recs_ent_iter recs_ent_iter_init_with_exclude(uint8_t *include_mask, uint8_t *exclude_mask) {
-  return (recs_ent_iter) {
-    .current_entity = RECS_NO_ENTITY_ID,
+recs_ent_iter recs_ent_iter_init_with_exclude(struct recs *ecs, uint8_t *include_mask, uint8_t *exclude_mask) {
+  recs_ent_iter iter = {
+    .next_entity = RECS_NO_ENTITY_ID,
     .index = 0,
     .include_bitmask = include_mask,
-    .exclude_bitmask = exclude_mask
+    .exclude_bitmask = exclude_mask,
   };
+
+  //we need to find the 1st element such that when we call next(), we can obtain the next element.
+  //we need to find the 1st element such that when we call next(), we can obtain the next element.
+  iter.next_entity = recs_ent_iter_find(ecs, &iter);
+
+  //state that this iterator has performed a search for the next entity
+  //iter.checked_for_next = 1;
+
+  return iter;
 }
 
-uint8_t recs_ent_iter_has_next(struct recs *ecs, recs_ent_iter *iter) {
-  return iter->index < ecs->ent_man.num_active_entities;
+
+uint8_t recs_ent_iter_has_next(recs_ent_iter *iter) {
+  return iter->next_entity != RECS_NO_ENTITY_ID;
 }
 
-uint8_t recs_ent_iter_next(struct recs *ecs, recs_ent_iter *iter) {
-
-  //assert that at least one of the 2 bitmasks are non-null
-  RECS_ASSERT((iter->include_bitmask == NULL && iter->exclude_bitmask != NULL) || (iter->include_bitmask != NULL && iter->exclude_bitmask == NULL));
-
-  for(; iter->index < ecs->ent_man.num_active_entities; iter->index++) {
-    recs_entity e = ecs->ent_man.set_of_ids[iter->index];
-
-    uint8_t has_comps =    iter->include_bitmask == NULL || (iter->include_bitmask != NULL && recs_entity_has_components(ecs, e, iter->include_bitmask));
-    uint8_t has_ex_comps = iter->exclude_bitmask == NULL || (iter->exclude_bitmask != NULL && recs_entity_has_excluded_components(ecs, e, iter->exclude_bitmask));
-
-    if(has_comps && has_ex_comps) {
-      iter->current_entity = e;
-      iter->index++;
-      return 1;
-    }
-  }
+recs_entity recs_ent_iter_next(struct recs *ecs, recs_ent_iter *iter) {
+  //grab the precached next entity
+  recs_entity rtn = iter->next_entity;
   
-  iter->current_entity = RECS_NO_ENTITY_ID;
-  return 0;
+  //search for next entity so that the has_next function works correctly
+  iter->next_entity = recs_ent_iter_find(ecs, iter);
+
+  
+  return rtn;
 }

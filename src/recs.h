@@ -41,10 +41,11 @@ typedef uint32_t recs_system_group;
 
 
 typedef struct recs_entity_iterator {
-  recs_entity current_entity;
+  recs_entity next_entity;
   uint32_t index;
   uint8_t *include_bitmask;
   uint8_t *exclude_bitmask;
+
 
 } recs_ent_iter;
 
@@ -91,6 +92,14 @@ void recs_component_unregister(struct recs *ecs, recs_component type);
 
 //get a component directly from the component pool's raw buffer.
 void* recs_component_get(struct recs *recs, recs_component c, uint32_t index);
+
+//get the number of active instances of a component
+uint32_t recs_component_num_instances(struct recs *recs, recs_component c);
+
+//get the entity associated with the component at the component index to the raw component buffer.
+recs_entity recs_component_get_entity(struct recs *recs, recs_component c, uint32_t comp_index);
+
+
 
 
 //register a system under a specific system group
@@ -170,18 +179,18 @@ void recs_bitmask_create(struct recs *recs, uint8_t *mask, const uint32_t num_co
 //functions for entity iterator
 
 //initialize an iterator to go through the list of active entities.
-recs_ent_iter recs_ent_iter_init(uint8_t *mask);
+recs_ent_iter recs_ent_iter_init(struct recs *ecs, uint8_t *mask);
 
-recs_ent_iter recs_ent_iter_init_with_exclude(uint8_t *include_mask, uint8_t *exclude_mask);
+recs_ent_iter recs_ent_iter_init_with_exclude(struct recs *ecs, uint8_t *include_mask, uint8_t *exclude_mask);
 
 
 //check if there are any more active entities left to process that have 
 //the specified components and tags
-uint8_t recs_ent_iter_has_next(struct recs *ecs, recs_ent_iter *iter);
+uint8_t recs_ent_iter_has_next(recs_ent_iter *iter);
 
 //retrieve the next entity ID and store it in the iterator. Returns 0
 //if no entities are left to check. Returns 1 if an entity was found.
-uint8_t recs_ent_iter_next(struct recs *ecs, recs_ent_iter *iter);
+recs_entity recs_ent_iter_next(struct recs *ecs, recs_ent_iter *iter);
 
 
 
