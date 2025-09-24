@@ -43,7 +43,9 @@ typedef uint32_t recs_system_group;
 typedef struct recs_entity_iterator {
   recs_entity current_entity;
   uint32_t index;
-  uint8_t *bitmask;
+  uint8_t *include_bitmask;
+  uint8_t *exclude_bitmask;
+
 } recs_ent_iter;
 
 
@@ -153,6 +155,9 @@ int recs_entity_has_tag(struct recs *recs, recs_entity e, recs_tag tag);
 //check if an entity has a set of components and tags specified in the bitmask provided.
 int recs_entity_has_components(struct recs *recs, recs_entity e, uint8_t *mask);
 
+//check if an entity does NOT HAVE ANY of the components and tags specified in the bitmask.
+int recs_entity_has_excluded_components(struct recs *ecs, recs_entity e, uint8_t *mask);
+
 
 //retrieve the component of a specific entity.
 void* recs_entity_get_component(struct recs *recs, recs_entity e, recs_component c);
@@ -166,6 +171,9 @@ void recs_bitmask_create(struct recs *recs, uint8_t *mask, const uint32_t num_co
 
 //initialize an iterator to go through the list of active entities.
 recs_ent_iter recs_ent_iter_init(uint8_t *mask);
+
+recs_ent_iter recs_ent_iter_init_with_exclude(uint8_t *include_mask, uint8_t *exclude_mask);
+
 
 //check if there are any more active entities left to process that have 
 //the specified components and tags

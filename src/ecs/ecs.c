@@ -374,6 +374,37 @@ int recs_entity_has_components(struct recs *ecs, recs_entity e, uint8_t *mask) {
 
 
 
+int recs_entity_has_excluded_components(struct recs *ecs, recs_entity e, uint8_t *mask) {
+  //We cannot use temporary variable to invert the mask since the bitmask is dynamically sized, and we
+  //want to avoid dynamic allocations here, so we will 
+  //check in byte-sized portions.
+
+  uint8_t *mask_for_entity = bitmask_list_get(&ecs->comp_bitmask_list, e);
+
+  //check all bytes except last one
+  for(uint32_t i = 0; i < ecs->comp_bitmask_size - 1; i++) {
+    //invert mask for entity to show what components it does NOT HAVE
+    uint8_t res = (~mask_for_entity[i]) & mask[i];
+    if(res != mask[i]) {
+      return 0;
+    }
+  }
+
+  //only check the LSB on the last byte
+
+  //get number of bits (starting from MSB) that we are setting to 0 so that we can check the equality of the LSB bits.
+  const uint8_t num_unused_bits = ecs->max_registered_components & 7;
+
+  //grab the last byte and AND with (0xFF >> num_unused_bits) to set all unused MSB bits to 0
+  uint8_t last_byte1 = mask_for_entity[ecs->comp_bitmask_size-1] & ((uint8_t)0xFF >> num_unused_bits);
+  uint8_t last_byte2 = mask[ecs->comp_bitmask_size-1] & ((uint8_t)0xFF >> num_unused_bits);
+
+  //dont forget to invert
+  return ((~last_byte1) & last_byte2) == last_byte2;
+  
+}
+
+
 void recs_bitmask_create(struct recs *ecs, uint8_t *mask, const uint32_t num_comps, const recs_component *comps, const uint32_t num_tags, const recs_tag *tags) {
   bitmask_clear(mask, 0, ecs->comp_bitmask_size);
   for(uint32_t i = 0; i < num_comps; i++) {
@@ -390,7 +421,24 @@ recs_ent_iter recs_ent_iter_init(uint8_t *mask) {
   return (recs_ent_iter) {
     .current_entity = RECS_NO_ENTITY_ID,
     .index = 0,
-    .bitmask = mask
+    .include_bitmask = mask,
+    .exclude_bitmask = NULL
+  };
+}
+
+//  If we want to exclude 0011 0100 
+//  Mask is 0000 1011
+//          0011 0100
+// Just invert the mask:
+//          1111 0100
+//          0011 0100
+
+recs_ent_iter recs_ent_iter_init_with_exclude(uint8_t *include_mask, uint8_t *exclude_mask) {
+  return (recs_ent_iter) {
+    .current_entity = RECS_NO_ENTITY_ID,
+    .index = 0,
+    .include_bitmask = include_mask,
+    .exclude_bitmask = exclude_mask
   };
 }
 
@@ -400,14 +448,22 @@ uint8_t recs_ent_iter_has_next(struct recs *ecs, recs_ent_iter *iter) {
 
 uint8_t recs_ent_iter_next(struct recs *ecs, recs_ent_iter *iter) {
 
+  //assert that at least one of the 2 bitmasks are non-null
+  RECS_ASSERT((iter->include_bitmask == NULL && iter->exclude_bitmask != NULL) || (iter->include_bitmask != NULL && iter->exclude_bitmask == NULL));
+
   for(; iter->index < ecs->ent_man.num_active_entities; iter->index++) {
     recs_entity e = ecs->ent_man.set_of_ids[iter->index];
-    if(recs_entity_has_components(ecs, e, iter->bitmask)) {
+
+    uint8_t has_comps =    iter->include_bitmask == NULL || (iter->include_bitmask != NULL && recs_entity_has_components(ecs, e, iter->include_bitmask));
+    uint8_t has_ex_comps = iter->exclude_bitmask == NULL || (iter->exclude_bitmask != NULL && recs_entity_has_excluded_components(ecs, e, iter->exclude_bitmask));
+
+    if(has_comps && has_ex_comps) {
       iter->current_entity = e;
       iter->index++;
       return 1;
     }
   }
+  
   iter->current_entity = RECS_NO_ENTITY_ID;
   return 0;
 }
