@@ -38,6 +38,25 @@ To build the example code for using the RECS library:
 `cmake --build build --target example2`
 
 
+## Running The Tests
+
+You will need the following dependencies installed in order to build
+the tests that I included:
+- CMake >= 3.15
+- A C compiler that supports C11 standard (some examples utilize C11 features for convenience)
+
+Before building with CMake, you must set up your build folder using:
+`cmake -S . -B build`
+
+Here are the list of all testing targets:
+
+To build the test code, you will need to run:
+`cmake --build build --target build_tests`
+
+To run all tests, you can use CTest to run this command:
+`ctest --test-dir build --output-on-failure`
+
+
 ## Quick Explanation of What A Entity Component System (ECS) Is:
 
 An Entity-Component-System (ECS) is a software architecture pattern that is primarily used in video game development to represent game world object. It is comprised of three data structures:
@@ -81,7 +100,7 @@ By organizing your game objects and their behaviors this way, you can easily add
     - Maximum of 2^32 systems.
 
 
-## Sample Usage
+## Sample Program
 
 
 ```c
@@ -152,8 +171,7 @@ void system_print_message(struct recs *ecs) {
 
 void system_print_number_only(struct recs *ecs) {
   //allocate enough memory to store bitmask
-  uint8_t mask_buf[RECS_GET_BITMASK_SIZE(RECS_MAX_COMPONENTS, RECS_MAX_TAGS)];
-  recs_comp_bitmask mask = mask_buf;
+  uint8_t mask[RECS_GET_BITMASK_SIZE(RECS_MAX_COMPONENTS, RECS_MAX_TAGS)];
 
   //initialize allocated bitmask with the tags and components we want to retrieve
   recs_bitmask_create(ecs, mask,
@@ -161,14 +179,14 @@ void system_print_number_only(struct recs *ecs) {
     RECS_BITMASK_CREATE_TAG_ARG(2, TAG_A, TAG_B)
   );
 
-  recs_ent_iter iter = recs_ent_iter_init(mask);
+  recs_ent_iter iter = recs_ent_iter_init(ecs, mask);
 
   //only iterate though entities with the COMPONENT_NUMBER component and the 
   //tags TAG_A and TAG_B. 
-  while(recs_ent_iter_has_next(ecs, &iter)) {
-    recs_ent_iter_next(ecs, &iter);
-    struct number_component *n = recs_entity_get_component(ecs, iter.current_entity, COMPONENT_NUMBER);
-    printf("Entity %d with TAG_A and TAG_B has number %llu\n", iter.current_entity, n->num);
+  while(recs_ent_iter_has_next(&iter)) {
+    recs_entity e = recs_ent_iter_next(ecs, &iter);
+    struct number_component *n = recs_entity_get_component(ecs, e, COMPONENT_NUMBER);
+    printf("Entity %d with TAG_A and TAG_B has number %llu\n", e, n->num);
   }
 }
 

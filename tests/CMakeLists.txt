@@ -18,3 +18,13 @@ target_include_directories(${TEST_EXCLUDE} PUBLIC
 target_link_libraries(${TEST_EXCLUDE} ${ECS})
 
 add_test(NAME ${TEST_EXCLUDE} COMMAND ${TEST_EXCLUDE})
+
+
+
+#####################
+# Build All Tests
+#####################
+
+set(BUILD_TESTS "build_tests")
+add_custom_target(${BUILD_TESTS})
+add_dependencies(${BUILD_TESTS} ${TEST_EXCLUDE})

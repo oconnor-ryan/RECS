@@ -81,14 +81,14 @@ void system_print_number_only(struct recs *ecs) {
     RECS_BITMASK_CREATE_TAG_ARG(2, TAG_A, TAG_B)
   );
 
-  recs_ent_iter iter = recs_ent_iter_init(mask);
+  recs_ent_iter iter = recs_ent_iter_init(ecs, mask);
 
   //only iterate though entities with the COMPONENT_NUMBER component and the 
   //tags TAG_A and TAG_B. 
-  while(recs_ent_iter_has_next(ecs, &iter)) {
-    recs_ent_iter_next(ecs, &iter);
-    struct number_component *n = recs_entity_get_component(ecs, iter.current_entity, MAP_COMP_PTR_TO_ID(n));
-    printf("Entity %d with TAG_A and TAG_B has number %llu\n", iter.current_entity, n->num);
+  while(recs_ent_iter_has_next(&iter)) {
+    recs_entity e = recs_ent_iter_next(ecs, &iter);
+    struct number_component *n = recs_entity_get_component(ecs, e, MAP_COMP_PTR_TO_ID(n));
+    printf("Entity %d with TAG_A and TAG_B has number %llu\n", e, n->num);
   }
 }
 
