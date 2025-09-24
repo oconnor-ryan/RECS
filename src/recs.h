@@ -30,8 +30,8 @@
 
 
 
-//get the size (in bytes) of the bitmask being used to check tags and components
-#define RECS_GET_BITMASK_SIZE(max_components, max_tags) (1 + ((max_components) + (max_tags)) / 8)
+//get the size (in bytes) of the bitmask being used to check tags and components.
+#define RECS_GET_BITMASK_SIZE(max_components, max_tags) (((max_components) + (max_tags) + 8 - 1) / 8)
 
 typedef uint32_t recs_component;
 typedef uint32_t recs_entity;
@@ -39,13 +39,11 @@ typedef uint32_t recs_tag;
 typedef uint32_t recs_system_group;
 
 
-//bitmasks are just arrays of bytes
-typedef uint8_t* recs_comp_bitmask;
 
 typedef struct recs_entity_iterator {
   recs_entity current_entity;
   uint32_t index;
-  recs_comp_bitmask mask;
+  uint8_t *bitmask;
 } recs_ent_iter;
 
 
@@ -71,7 +69,9 @@ typedef void (*recs_system_func)(struct recs *ecs);
 #define RECS_BITMASK_CREATE_COMP_ARG(num_comps, ...) num_comps, (recs_component[]){__VA_ARGS__}
 #define RECS_BITMASK_CREATE_TAG_ARG(num_tags, ...) num_tags, (recs_tag[]){__VA_ARGS__}
 
-
+#define RECS_BITMASK_CREATE(var, bitmask_size, comp_arg, tag_arg) \
+  uint8_t buffer[bitmask_size]; \
+  (recs_comp_bitmask)buffer
 
 //allocate and initialize a RECS instance. Returns NULL if initialization failed.
 recs recs_init(uint32_t max_entities, uint32_t max_components, uint32_t max_tags, uint32_t max_systems, uint32_t max_sys_groups, void *context);
@@ -151,7 +151,7 @@ int recs_entity_has_tag(struct recs *recs, recs_entity e, recs_tag tag);
 
 
 //check if an entity has a set of components and tags specified in the bitmask provided.
-int recs_entity_has_components(struct recs *recs, recs_entity e, recs_comp_bitmask mask);
+int recs_entity_has_components(struct recs *recs, recs_entity e, uint8_t *mask);
 
 
 //retrieve the component of a specific entity.
@@ -159,13 +159,13 @@ void* recs_entity_get_component(struct recs *recs, recs_entity e, recs_component
 
 
 //initialize a bitmask using an array of component IDs and an array of tag IDs.
-void recs_bitmask_create(struct recs *recs, recs_comp_bitmask mask, const uint32_t num_comps, const recs_component *comps, const uint32_t num_tags, const recs_tag *tags);
+void recs_bitmask_create(struct recs *recs, uint8_t *mask, const uint32_t num_comps, const recs_component *comps, const uint32_t num_tags, const recs_tag *tags);
 
 
 //functions for entity iterator
 
 //initialize an iterator to go through the list of active entities.
-recs_ent_iter recs_ent_iter_init(recs_comp_bitmask mask);
+recs_ent_iter recs_ent_iter_init(uint8_t *mask);
 
 //check if there are any more active entities left to process that have 
 //the specified components and tags

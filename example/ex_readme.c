@@ -65,8 +65,7 @@ void system_print_message(struct recs *ecs) {
 
 void system_print_number_only(struct recs *ecs) {
   //allocate enough memory to store bitmask
-  uint8_t mask_buf[RECS_GET_BITMASK_SIZE(RECS_MAX_COMPONENTS, RECS_MAX_TAGS)];
-  recs_comp_bitmask mask = mask_buf;
+  uint8_t mask[RECS_GET_BITMASK_SIZE(RECS_MAX_COMPONENTS, RECS_MAX_TAGS)];
 
   //initialize allocated bitmask with the tags and components we want to retrieve
   recs_bitmask_create(ecs, mask,

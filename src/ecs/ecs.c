@@ -112,7 +112,7 @@ recs recs_init(uint32_t max_entities, uint32_t max_components, uint32_t max_tags
   entity_manager_init(&ecs->ent_man, entity_id_buffer, max_entities);
   bitmask_list_init(&ecs->comp_bitmask_list, ecs->comp_bitmask_size, bitmask_buffer);
   for(uint32_t i = 0; i < max_entities; i++) {
-    recs_comp_bitmask mask = bitmask_list_get(&ecs->comp_bitmask_list, i);
+    uint8_t *mask = bitmask_list_get(&ecs->comp_bitmask_list, i);
     bitmask_clear(mask, 0, bytes_per_bitmask);
   }
   ecs->recs_component_stores = (struct component_pool*) component_pool_buffer;
@@ -339,7 +339,7 @@ void* recs_component_get(struct recs *recs, recs_component c, uint32_t index) {
   return p->buffer + (index * p->component_size);
 }
 
-int recs_entity_has_components(struct recs *ecs, recs_entity e, recs_comp_bitmask mask) {
+int recs_entity_has_components(struct recs *ecs, recs_entity e, uint8_t *mask) {
   /*
   struct recs_comp_bitmask res;
   bitmask_and(&res, ecs->comp_bitmask_list + e, &mask);
@@ -349,7 +349,7 @@ int recs_entity_has_components(struct recs *ecs, recs_entity e, recs_comp_bitmas
   //rather than using the bitmask's version of AND and EQUAL, we can roll our own in-place version.
   //Since we don't know the size of the bitmask and want to avoid using MALLOC, we will check each byte instead.
 
-  recs_comp_bitmask mask_for_entity = bitmask_list_get(&ecs->comp_bitmask_list, e);
+  uint8_t *mask_for_entity = bitmask_list_get(&ecs->comp_bitmask_list, e);
 
   //check all bytes except last one
   for(uint32_t i = 0; i < ecs->comp_bitmask_size - 1; i++) {
@@ -374,7 +374,7 @@ int recs_entity_has_components(struct recs *ecs, recs_entity e, recs_comp_bitmas
 
 
 
-void recs_bitmask_create(struct recs *ecs, recs_comp_bitmask mask, const uint32_t num_comps, const recs_component *comps, const uint32_t num_tags, const recs_tag *tags) {
+void recs_bitmask_create(struct recs *ecs, uint8_t *mask, const uint32_t num_comps, const recs_component *comps, const uint32_t num_tags, const recs_tag *tags) {
   bitmask_clear(mask, 0, ecs->comp_bitmask_size);
   for(uint32_t i = 0; i < num_comps; i++) {
     bitmask_set(mask, comps[i], 1);
@@ -386,11 +386,11 @@ void recs_bitmask_create(struct recs *ecs, recs_comp_bitmask mask, const uint32_
 }
 
 
-recs_ent_iter recs_ent_iter_init(recs_comp_bitmask mask) {
+recs_ent_iter recs_ent_iter_init(uint8_t *mask) {
   return (recs_ent_iter) {
     .current_entity = RECS_NO_ENTITY_ID,
     .index = 0,
-    .mask = mask
+    .bitmask = mask
   };
 }
 
@@ -402,7 +402,7 @@ uint8_t recs_ent_iter_next(struct recs *ecs, recs_ent_iter *iter) {
 
   for(; iter->index < ecs->ent_man.num_active_entities; iter->index++) {
     recs_entity e = ecs->ent_man.set_of_ids[iter->index];
-    if(recs_entity_has_components(ecs, e, iter->mask)) {
+    if(recs_entity_has_components(ecs, e, iter->bitmask)) {
       iter->current_entity = e;
       iter->index++;
       return 1;

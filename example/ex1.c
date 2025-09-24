@@ -75,9 +75,7 @@ void system_print_message(struct recs *ecs) {
 }
 
 void system_print_number_only(struct recs *ecs) {
-  uint8_t mask_buf[RECS_GET_BITMASK_SIZE(RECS_MAX_COMPONENTS, RECS_MAX_TAGS)];
-
-  recs_comp_bitmask mask = mask_buf;
+  uint8_t mask[RECS_GET_BITMASK_SIZE(RECS_MAX_COMPONENTS, RECS_MAX_TAGS)];
   recs_bitmask_create(ecs, mask,
     RECS_BITMASK_CREATE_COMP_ARG(1, COMPONENT_NUMBER), 
     RECS_BITMASK_CREATE_TAG_ARG(2, TAG_A, TAG_B)

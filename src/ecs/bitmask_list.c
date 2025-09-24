@@ -5,6 +5,6 @@ void bitmask_list_init(struct bitmask_list *list, uint32_t bytes_per_mask, uint8
   list->buffer = buffer;
 }
 
-recs_comp_bitmask bitmask_list_get(struct bitmask_list *list, uint32_t index) {
-  return (recs_comp_bitmask) (list->buffer + (index * list->bytes_per_mask));
+uint8_t* bitmask_list_get(struct bitmask_list *list, uint32_t index) {
+  return (list->buffer + (index * list->bytes_per_mask));
 }

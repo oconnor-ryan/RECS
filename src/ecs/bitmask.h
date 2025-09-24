@@ -14,13 +14,13 @@
 
 
 
-void bitmask_clear(recs_comp_bitmask mask, uint8_t value, uint32_t bitmask_size);
+void bitmask_clear(uint8_t *mask, uint8_t value, uint32_t bitmask_size);
 
-void bitmask_set(recs_comp_bitmask mask, uint64_t bit_index, uint8_t value);
-uint8_t bitmask_test(recs_comp_bitmask mask, uint64_t bit_index);
+void bitmask_set(uint8_t *mask, uint64_t bit_index, uint8_t value);
+uint8_t bitmask_test(uint8_t *mask, uint64_t bit_index);
 
-void bitmask_and(recs_comp_bitmask dest, recs_comp_bitmask op1, recs_comp_bitmask op2, uint32_t bitmask_size);
+void bitmask_and(uint8_t *dest, uint8_t *op1, uint8_t *op2, uint32_t bitmask_size);
 
-uint8_t bitmask_eq(recs_comp_bitmask op1, recs_comp_bitmask op2, uint64_t bitmask_num_bits);
+uint8_t bitmask_eq(uint8_t *op1, uint8_t *op2, uint64_t bitmask_num_bits);
 
 #endif// BITMASK_H
