@@ -1,4 +1,4 @@
-#include "ecs/component_pool.h"
+#include "component_pool.h"
 
 #define NO_COMP_ID RECS_NO_ENTITY_ID
 

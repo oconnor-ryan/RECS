@@ -1,4 +1,4 @@
-#include "ecs/bitmask.h"
+#include "bitmask.h"
 
 #define BYTE_INDEX(bit_index) ((bit_index) >> 3)
 

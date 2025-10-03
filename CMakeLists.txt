@@ -11,11 +11,11 @@ enable_testing()
 set(ECS "recs")
 
 add_library(${ECS} STATIC 
-  src/ecs/ecs.c
-  src/ecs/entity_manager.c
-  src/ecs/component_pool.c
-  src/ecs/bitmask.c
-  src/ecs/bitmask_list.c
+  src/ecs.c
+  src/entity_manager.c
+  src/component_pool.c
+  src/bitmask.c
+  src/bitmask_list.c
 )
 
 #-Werror was removed
@@ -26,10 +26,7 @@ target_include_directories(${ECS} PRIVATE
   src/
 )
 
-target_sources(${ECS} PUBLIC src/recs.h)
-get_target_property(${ECS}_PUBLIC_HEADERS ${ECS} INTERFACE_SOURCES)
-set_target_properties(${ECS} PROPERTIES PUBLIC_HEADER "${${ECS}_PUBLIC_HEADERS}")
-install(TARGETS ${ECS} PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/recs")
+target_include_directories(${ECS} PUBLIC "include/")
 
 add_subdirectory(example)
 add_subdirectory(tests)

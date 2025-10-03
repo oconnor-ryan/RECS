@@ -1,4 +1,4 @@
-#include "ecs/bitmask_list.h"
+#include "bitmask_list.h"
 
 void bitmask_list_init(struct bitmask_list *list, uint32_t bytes_per_mask, uint8_t *buffer) {
   list->bytes_per_mask = bytes_per_mask;
