@@ -252,6 +252,21 @@ int main(void) {
 }
 ```
 
+## Current Feature Ideas
+While playing with this ECS in my own project, I found a few issues that make this ECS less user-friendly.
+
+- Make adding and removing entities less error-prone. 
+  - Currently, if you try to add and remove entities while iterating through entities in a system, then strange behavior can occur (skipping entities during iterations, entities being processed before they even spawn in).
+  - A solution is to use a built-in "DEFER_SPAWN" and "DEFER_FREE" tag. Rather than being able to directly add
+    and remove entities, you will be required to queue these actions instead until a point where there are no systems running.
+    - While this forces all operations to be queued to after a system executes, it makes removing and adding entities
+      consistant regardless of when you perform these operations.
+
+- Figure out how to update references to entities within components
+  - Currently, if a entity is deleted, any components referencing this entity will not know that the entity there are refering to no longer exists, and the ID may point to a different entity. 
+  - A solution is to extend the Entity number to 64 bits, and split it into a "version" number and an actual ID. When the entity is deleted, its version is increased for that specific entity ID. The component storing the 64-bit entity ID retains an older version of the ID, so it knows to not track this entity anymore.
+    - Even if the version number overflows, because we are checking that the version is EQUAL to the current version, overflow should not matter except for the rare case where we somehow remove and spawn an entity with the same ID exactly 2^32 times during the lifespan of a component, which will likely never happen.
+    - This does require storing (sizeof(uint32_t) * max_entities) version numbers, but this is a small price to pay for automatically updating the state of each entity ID for components.
 
 ## Potential Upcoming Features
 - Allow more efficient way to query entities within systems based on their components and tags.

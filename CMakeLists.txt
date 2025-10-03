@@ -26,6 +26,11 @@ target_include_directories(${ECS} PRIVATE
   src/
 )
 
+target_sources(${ECS} PUBLIC src/recs.h)
+get_target_property(${ECS}_PUBLIC_HEADERS ${ECS} INTERFACE_SOURCES)
+set_target_properties(${ECS} PROPERTIES PUBLIC_HEADER "${${ECS}_PUBLIC_HEADERS}")
+install(TARGETS ${ECS} PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/recs")
+
 add_subdirectory(example)
 add_subdirectory(tests)
 
