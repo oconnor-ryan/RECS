@@ -421,7 +421,7 @@ int recs_entity_has_excluded_components(struct recs *ecs, recs_entity e, uint8_t
 }
 
 uint8_t recs_entity_active(struct recs *ecs, recs_entity e) {
-  return RECS_ENT_VERSION(e) == ecs->ent_man.ent_versions_list[RECS_ENT_ID(e)];
+  return !RECS_ENTITY_NONE(e) && RECS_ENT_VERSION(e) == ecs->ent_man.ent_versions_list[RECS_ENT_ID(e)];
 }
 
 
