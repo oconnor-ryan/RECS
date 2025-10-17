@@ -23,9 +23,9 @@
   #define RECS_ASSERT(boolean) assert(boolean)
 #endif
 
-// An invalid entity ID. This value is used for variables of type
-// recs_entity when you want to specify that there is no entity.
-//TODO: Consider changing this to 0 for easier boolean checking
+
+// An invalid entity ID. This macro is used for variables of type
+// uint32_t when you want to specify that there is no entity.
 #define RECS_NO_ENTITY_ID 0xFFFFFFFF
 
 
@@ -33,8 +33,17 @@
 //get the size (in bytes) of the bitmask being used to check tags and components.
 #define RECS_GET_BITMASK_SIZE(max_components, max_tags) (((max_components) + (max_tags) + 8 - 1) / 8)
 
+#define RECS_ENT_FROM(id, version) ((recs_entity) (((uint64_t)(id)) | ((uint64_t)(version) << 32)))
+#define RECS_ENT_VERSION(ent) ((uint32_t)((ent) >> 32))
+#define RECS_ENT_ID(ent) ((uint32_t)(ent))
+
+
+//used to check if the recs_entity contains the RECS_NO_ENTITY_ID (indicating a non-existant id)
+#define RECS_ENTITY_NONE(ent) (RECS_ENT_ID(ent) == RECS_NO_ENTITY_ID)
+
+
 typedef uint32_t recs_component;
-typedef uint32_t recs_entity;
+typedef uint64_t recs_entity;
 typedef uint32_t recs_tag;
 typedef uint32_t recs_system_group;
 
@@ -45,6 +54,11 @@ typedef struct recs_entity_iterator {
   uint32_t index;
   uint8_t *include_bitmask;
   uint8_t *exclude_bitmask;
+
+  //the maximum index in the active entity list to search though.
+  //If 0, this index is ignored and the iterator will continue iterating
+  //even if the active entity list grows.
+  uint32_t max_entity_index;
 
 
 } recs_ent_iter;
@@ -75,6 +89,7 @@ typedef void (*recs_system_func)(struct recs *ecs);
 #define RECS_BITMASK_CREATE(var, bitmask_size, comp_arg, tag_arg) \
   uint8_t buffer[bitmask_size]; \
   (recs_comp_bitmask)buffer
+
 
 //allocate and initialize a RECS instance. Returns NULL if initialization failed.
 recs recs_init(uint32_t max_entities, uint32_t max_components, uint32_t max_tags, uint32_t max_systems, uint32_t max_sys_groups, void *context);
@@ -128,14 +143,19 @@ uint32_t recs_num_active_entities(struct recs *recs);
 //add an entity without components
 recs_entity recs_entity_add(struct recs *recs);
 
-//remove an entity, deleting any components it had
-void recs_entity_remove(struct recs *recs, recs_entity e);
+/* TODO: Allow the following to be done
+  1. Immediately remove entity from being processed in a system
+  2. Immediately add entity that can be processed as soon as it spawns
+  3. Queue an entity to be removed, but still allow it to be processed while finishing iteration.
+  4. Queue an entity to be added, but not allowing it to process until iteration is done.
 
-//remove an entity using an index into the active entity list.
-void recs_entity_remove_at_id_index(struct recs *recs, uint32_t id_index);
+  This could be accomplished by adding booleans to the entity iterators, which can choose
+  to skip entities being added or locking the "num_entities" limit when queuing newly added entities.
+*/
 
-//grab an entity from the active entity list.
-recs_entity recs_entity_get(struct recs *recs, uint32_t index);
+void recs_entity_queue_remove(struct recs *ecs, recs_entity e);
+
+void recs_entity_remove_queued(struct recs *ecs);
 
 
 //add a component to a specific entity.
@@ -171,6 +191,8 @@ int recs_entity_has_excluded_components(struct recs *ecs, recs_entity e, uint8_t
 //retrieve the component of a specific entity.
 void* recs_entity_get_component(struct recs *recs, recs_entity e, recs_component c);
 
+//check if an entity is active, or has been removed
+uint8_t recs_entity_active(struct recs *ecs, recs_entity e);
 
 //initialize a bitmask using an array of component IDs and an array of tag IDs.
 void recs_bitmask_create(struct recs *recs, uint8_t *mask, const uint32_t num_comps, const recs_component *comps, const uint32_t num_tags, const recs_tag *tags);

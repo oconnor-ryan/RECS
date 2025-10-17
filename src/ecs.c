@@ -25,8 +25,6 @@ struct recs {
   uint32_t max_system_groups;
   uint32_t max_tags;
 
-
-
   //used to track size of one bitmask.
   size_t comp_bitmask_size;
 
@@ -76,6 +74,7 @@ recs recs_init(uint32_t max_entities, uint32_t max_components, uint32_t max_tags
   //get sizes needed for each buffer
   size_t recs_buffer_size = sizeof(struct recs);
   size_t entity_id_buffer_size = sizeof(recs_entity) * max_entities;
+  size_t entity_version_buffer_size = sizeof(uint32_t) * max_entities;
   size_t component_pool_buffer_size = sizeof(struct component_pool) * max_components;
   size_t bitmask_buffer_size = bytes_per_bitmask * max_entities;
   size_t system_buffer_size = sizeof(struct recs_system) * max_systems;
@@ -83,7 +82,7 @@ recs recs_init(uint32_t max_entities, uint32_t max_components, uint32_t max_tags
 
 
   //allocate one big buffer that will store nearly all of the ECS's dynamically allocated data.
-  uint8_t *big_buffer = (uint8_t*)RECS_MALLOC(recs_buffer_size + entity_id_buffer_size + component_pool_buffer_size + bitmask_buffer_size + system_buffer_size + system_mapper_buffer_size);
+  uint8_t *big_buffer = (uint8_t*)RECS_MALLOC(recs_buffer_size + entity_id_buffer_size + entity_version_buffer_size + component_pool_buffer_size + bitmask_buffer_size + system_buffer_size + system_mapper_buffer_size);
   if(big_buffer == NULL) {
     return NULL;
   }
@@ -91,10 +90,11 @@ recs recs_init(uint32_t max_entities, uint32_t max_components, uint32_t max_tags
   recs ecs = (recs) big_buffer;
 
   uint8_t *entity_id_buffer =      big_buffer + recs_buffer_size;
-  uint8_t *component_pool_buffer = big_buffer + recs_buffer_size + entity_id_buffer_size;
-  uint8_t *bitmask_buffer =        big_buffer + recs_buffer_size + entity_id_buffer_size + component_pool_buffer_size;
-  uint8_t *system_buffer =         big_buffer + recs_buffer_size + entity_id_buffer_size + component_pool_buffer_size + bitmask_buffer_size;
-  uint8_t *system_mapper_buffer =  big_buffer + recs_buffer_size + entity_id_buffer_size + component_pool_buffer_size + bitmask_buffer_size + system_buffer_size;
+  uint8_t *entity_version_buffer = big_buffer + recs_buffer_size + entity_id_buffer_size;
+  uint8_t *component_pool_buffer = big_buffer + recs_buffer_size + entity_id_buffer_size + entity_version_buffer_size;
+  uint8_t *bitmask_buffer =        big_buffer + recs_buffer_size + entity_id_buffer_size + entity_version_buffer_size + component_pool_buffer_size;
+  uint8_t *system_buffer =         big_buffer + recs_buffer_size + entity_id_buffer_size + entity_version_buffer_size + component_pool_buffer_size + bitmask_buffer_size;
+  uint8_t *system_mapper_buffer =  big_buffer + recs_buffer_size + entity_id_buffer_size + entity_version_buffer_size + component_pool_buffer_size + bitmask_buffer_size + system_buffer_size;
 
 
   ecs->max_registered_components = max_components;
@@ -109,7 +109,7 @@ recs recs_init(uint32_t max_entities, uint32_t max_components, uint32_t max_tags
 
 
   //assign all buffers to appropriate parts of ECS.
-  entity_manager_init(&ecs->ent_man, entity_id_buffer, max_entities);
+  entity_manager_init(&ecs->ent_man, entity_id_buffer, entity_version_buffer, max_entities);
   bitmask_list_init(&ecs->comp_bitmask_list, ecs->comp_bitmask_size, bitmask_buffer);
   for(uint32_t i = 0; i < max_entities; i++) {
     uint8_t *mask = bitmask_list_get(&ecs->comp_bitmask_list, i);
@@ -174,8 +174,8 @@ void recs_component_unregister(struct recs *ecs, recs_component type) {
 
   //iterate through each entity and update their bitmask
   for(uint32_t i = 0; i < ecs->ent_man.num_active_entities; i++) {
-    recs_entity e = ecs->ent_man.set_of_ids[i];
-    bitmask_set(bitmask_list_get(&ecs->comp_bitmask_list, e), type, 0);
+    recs_entity e = ecs->ent_man.entity_pool[i];
+    bitmask_set(bitmask_list_get(&ecs->comp_bitmask_list, RECS_ENT_ID(e)), type, 0);
   }
   //free memory
   component_pool_free(cp);
@@ -188,7 +188,11 @@ uint32_t recs_component_num_instances(struct recs *recs, recs_component c) {
 
 recs_entity recs_component_get_entity(struct recs *recs, recs_component c, uint32_t comp_index) {
   struct component_pool *p = recs->recs_component_stores + c;
-  return p->comp_to_entity[comp_index];
+  uint32_t id = p->comp_to_entity[comp_index];
+  if(id == RECS_NO_ENTITY_ID) {
+    return RECS_ENT_FROM(RECS_NO_ENTITY_ID, 0);
+  }
+  return RECS_ENT_FROM(id, recs->ent_man.ent_versions_list[id]);
 }
 
 
@@ -258,9 +262,6 @@ void recs_system_run(struct recs *ecs, recs_system_group type) {
   }
 }
 
-recs_entity recs_entity_get(struct recs *ecs, uint32_t index) {
-  return ecs->ent_man.set_of_ids[index];
-}
 
 recs_entity recs_entity_add(struct recs *ecs) {
   RECS_ASSERT(ecs->ent_man.num_active_entities < ecs->ent_man.max_entities);
@@ -270,20 +271,25 @@ recs_entity recs_entity_add(struct recs *ecs) {
   
 }
 
-void recs_entity_remove(struct recs *ecs, recs_entity e) {
-
-
-  recs_entity_remove_all_components(ecs, e);
-
-
-  //return ID to be reused by entity manager
-  entity_manager_remove(&ecs->ent_man, e);
+void recs_entity_queue_remove(struct recs *ecs, recs_entity e) {
+  ecs->ent_man.ent_versions_list[RECS_ENT_ID(e)]++;
 }
 
-void recs_entity_remove_at_id_index(struct recs *ecs, uint32_t id_index) {
-  recs_entity e = ecs->ent_man.set_of_ids[id_index];
-  recs_entity_remove_all_components(ecs, e);
-  entity_manager_remove_at_index(&ecs->ent_man, id_index);
+void recs_entity_remove_queued(struct recs *ecs) {
+  //move in reversed order since the index does not need to be modified when removing entities
+  for(uint32_t i = ecs->ent_man.num_active_entities-1; 1; i--) {
+    recs_entity e = ecs->ent_man.entity_pool[i];
+    if(recs_entity_active(ecs, e)) continue;
+
+    //delete components
+    recs_entity_remove_all_components(ecs, e);
+
+    //remove from active entity pool
+    entity_manager_remove_at_index(&ecs->ent_man, i);
+
+    if(i == 0) break;
+
+  }
 }
 
 
@@ -297,7 +303,7 @@ void recs_entity_add_component(struct recs *ecs, recs_entity e, recs_component c
 }
 
 void recs_entity_add_tag(struct recs *ecs, recs_entity e, recs_tag tag) {
-  bitmask_set(bitmask_list_get(&ecs->comp_bitmask_list, e), recs_tag_id_to_comp_id(ecs, tag), 1);
+  bitmask_set(bitmask_list_get(&ecs->comp_bitmask_list, RECS_ENT_ID(e)), recs_tag_id_to_comp_id(ecs, tag), 1);
 }
 
 void recs_entity_remove_component(struct recs *ecs, recs_entity e, recs_component comp_type) {
@@ -305,19 +311,19 @@ void recs_entity_remove_component(struct recs *ecs, recs_entity e, recs_componen
   component_pool_remove(ca, e);
 
   //clear bit
-  bitmask_set(bitmask_list_get(&ecs->comp_bitmask_list, e), comp_type, 0);
+  bitmask_set(bitmask_list_get(&ecs->comp_bitmask_list, RECS_ENT_ID(e)), comp_type, 0);
 
 }
 
 void recs_entity_remove_tag(struct recs *ecs, recs_entity e, recs_tag tag) {
-  bitmask_set(bitmask_list_get(&ecs->comp_bitmask_list, e), recs_tag_id_to_comp_id(ecs, tag), 0);
+  bitmask_set(bitmask_list_get(&ecs->comp_bitmask_list, RECS_ENT_ID(e)), recs_tag_id_to_comp_id(ecs, tag), 0);
 }
 
 void recs_entity_remove_all_components(struct recs *ecs, recs_entity e) {
 
   //remove components from component arrays
   for(recs_component t = 0; t < ecs->max_registered_components; t++) {
-    if(bitmask_test(bitmask_list_get(&ecs->comp_bitmask_list, e), t)) {
+    if(bitmask_test(bitmask_list_get(&ecs->comp_bitmask_list, RECS_ENT_ID(e)), t)) {
       recs_entity_remove_component(ecs, e, t);
 
     }
@@ -329,11 +335,11 @@ void recs_entity_remove_all_components(struct recs *ecs, recs_entity e) {
 }
 
 int recs_entity_has_component(struct recs *ecs, recs_entity e, recs_component c) {
-  return bitmask_test(bitmask_list_get(&ecs->comp_bitmask_list, e), c);
+  return bitmask_test(bitmask_list_get(&ecs->comp_bitmask_list, RECS_ENT_ID(e)), c);
 }
 
 int recs_entity_has_tag(struct recs *ecs, recs_entity e, recs_tag tag) {
-  return bitmask_test(bitmask_list_get(&ecs->comp_bitmask_list, e), recs_tag_id_to_comp_id(ecs, tag));
+  return bitmask_test(bitmask_list_get(&ecs->comp_bitmask_list, RECS_ENT_ID(e)), recs_tag_id_to_comp_id(ecs, tag));
 }
 
 void* recs_entity_get_component(struct recs *ecs, recs_entity e, recs_component c) {
@@ -358,7 +364,7 @@ int recs_entity_has_components(struct recs *ecs, recs_entity e, uint8_t *mask) {
   //rather than using the bitmask's version of AND and EQUAL, we can roll our own in-place version.
   //Since we don't know the size of the bitmask and want to avoid using MALLOC, we will check each byte instead.
 
-  uint8_t *mask_for_entity = bitmask_list_get(&ecs->comp_bitmask_list, e);
+  uint8_t *mask_for_entity = bitmask_list_get(&ecs->comp_bitmask_list, RECS_ENT_ID(e));
 
   //check all bytes except last one
   for(uint32_t i = 0; i < ecs->comp_bitmask_size - 1; i++) {
@@ -388,7 +394,7 @@ int recs_entity_has_excluded_components(struct recs *ecs, recs_entity e, uint8_t
   //want to avoid dynamic allocations here, so we will 
   //check in byte-sized portions.
 
-  uint8_t *mask_for_entity = bitmask_list_get(&ecs->comp_bitmask_list, e);
+  uint8_t *mask_for_entity = bitmask_list_get(&ecs->comp_bitmask_list, RECS_ENT_ID(e));
 
   //check all bytes except last one
   for(uint32_t i = 0; i < ecs->comp_bitmask_size - 1; i++) {
@@ -413,6 +419,10 @@ int recs_entity_has_excluded_components(struct recs *ecs, recs_entity e, uint8_t
   
 }
 
+uint8_t recs_entity_active(struct recs *ecs, recs_entity e) {
+  return RECS_ENT_VERSION(e) == ecs->ent_man.ent_versions_list[RECS_ENT_ID(e)];
+}
+
 
 void recs_bitmask_create(struct recs *ecs, uint8_t *mask, const uint32_t num_comps, const recs_component *comps, const uint32_t num_tags, const recs_tag *tags) {
   bitmask_clear(mask, 0, ecs->comp_bitmask_size);
@@ -432,7 +442,11 @@ static recs_entity recs_ent_iter_find(struct recs *ecs, recs_ent_iter *iter) {
 
 
   for(; iter->index < ecs->ent_man.num_active_entities; iter->index++) {
-    recs_entity e = ecs->ent_man.set_of_ids[iter->index];
+    recs_entity e = ecs->ent_man.entity_pool[iter->index];
+
+    //skip over recently deleted entities that have not been removed from the
+    //active pool yet.
+    if(!recs_entity_active(ecs, e)) continue;
 
     uint8_t has_comps =    iter->include_bitmask == NULL || (iter->include_bitmask != NULL && recs_entity_has_components(ecs, e, iter->include_bitmask));
     uint8_t has_ex_comps = iter->exclude_bitmask == NULL || (iter->exclude_bitmask != NULL && recs_entity_has_excluded_components(ecs, e, iter->exclude_bitmask));
@@ -491,7 +505,7 @@ recs_ent_iter recs_ent_iter_init_with_exclude(struct recs *ecs, uint8_t *include
 
 
 uint8_t recs_ent_iter_has_next(recs_ent_iter *iter) {
-  return iter->next_entity != RECS_NO_ENTITY_ID;
+  return RECS_ENT_ID(iter->next_entity) != RECS_NO_ENTITY_ID;
 }
 
 recs_entity recs_ent_iter_next(struct recs *ecs, recs_ent_iter *iter) {

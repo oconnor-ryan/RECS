@@ -31,7 +31,10 @@ struct number_component {
 */
 enum component {
   COMPONENT_MESSAGE, //associated with 'struct message_component'
-  COMPONENT_NUMBER   //associated with 'struct number_component'
+  COMPONENT_NUMBER,   //associated with 'struct number_component'
+
+
+  COMPONENT_COUNT
 };
 
 /*
@@ -40,7 +43,10 @@ enum component {
 */
 enum tag {
   TAG_A,
-  TAG_B
+  TAG_B,
+
+
+  TAG_COUNT
 };
 
 
@@ -59,13 +65,18 @@ void system_print_message(struct recs *ecs) {
 
   printf("========== System Print Message %d ==========\n", *num_from_context_ptr);
 
-  //iterate through every entity
-  for(uint32_t i = 0; i < recs_num_active_entities(ecs); i++) {
+  uint8_t exclude_mask[RECS_GET_BITMASK_SIZE(COMPONENT_COUNT, TAG_COUNT)];
+  recs_bitmask_create(ecs, exclude_mask, 0, NULL, 0, NULL);
+
+  //iterate through EVERY entity
+  recs_ent_iter iter = recs_ent_iter_init_with_exclude(ecs, NULL, exclude_mask);
+
+  while(recs_ent_iter_has_next(&iter)) {
 
     //grab our entity ID
-    recs_entity e = recs_entity_get(ecs, i);
+    recs_entity e = recs_ent_iter_next(ecs, &iter);
 
-    printf("Entity Id: %u\n", e);
+    printf("Entity Id: %u\n", RECS_ENT_ID(e));
 
     //check if our entity has a specific component, if it does, grab that component
     //and do something with it.
@@ -85,7 +96,7 @@ void system_print_message(struct recs *ecs) {
     printf("Has Tag A = %s\n", has_tag_a_str);
     printf("Has Tag B = %s\n", has_tag_b_str);
 
-    printf("End of Entity %u\n\n", e);
+    printf("End of Entity %u\n\n", RECS_ENT_ID(e));
 
   }
 
@@ -157,12 +168,19 @@ int main(void) {
   
 
   //remove the 1st entity
-  recs_entity_remove(ecs, a);
+  recs_entity_queue_remove(ecs, a);
+
+  //note that entities queued for removal are still "active", though they do not appear
+  //within any entity iterators. You do need to remove them properly with the following function
+  recs_entity_remove_queued(ecs);
+
+
   run_update(ecs);
 
 
   //remove the 2nd entity
-  recs_entity_remove(ecs, b);
+  recs_entity_queue_remove(ecs, b);
+  recs_entity_remove_queued(ecs);
   run_update(ecs);
 
 

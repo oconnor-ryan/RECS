@@ -31,8 +31,8 @@ struct number_component {
 // note that you can define these enums manually if desired, though you will need to 
 // make sure enum values start at 0 and increment by 1.
 
-RECS_INIT_COMP_IDS(component, COMPONENT_MESSAGE, COMPONENT_NUMBER);
-RECS_INIT_TAG_IDS(tag, TAG_A, TAG_B);
+RECS_INIT_COMP_IDS(component, COMPONENT_MESSAGE, COMPONENT_NUMBER, COMPONENT_COUNT);
+RECS_INIT_TAG_IDS(tag, TAG_A, TAG_B, TAG_COUNT);
 RECS_INIT_SYS_GRP_IDS(system_group, SYSTEM_GROUP_UPDATE);
 
 
@@ -47,12 +47,16 @@ RECS_INIT_SYS_GRP_IDS(system_group, SYSTEM_GROUP_UPDATE);
 
 //define our systems
 void system_print_message(struct recs *ecs) {
+  uint8_t exclude_mask[RECS_GET_BITMASK_SIZE(COMPONENT_COUNT, TAG_COUNT)];
+  recs_bitmask_create(ecs, exclude_mask, 0, NULL, 0, NULL);
 
-  //iterate through every entity
-  for(uint32_t i = 0; i < recs_num_active_entities(ecs); i++) {
+  //iterate through EVERY entity
+  recs_ent_iter iter = recs_ent_iter_init_with_exclude(ecs, NULL, exclude_mask);
+
+  while(recs_ent_iter_has_next(&iter)) {
 
     //grab our entity ID
-    recs_entity e = recs_entity_get(ecs, i);
+    recs_entity e = recs_ent_iter_next(ecs, &iter);
 
     struct message_component *m = recs_entity_get_component(ecs, e, MAP_COMP_PTR_TO_ID(m));
     struct number_component *n = recs_entity_get_component(ecs, e, MAP_COMP_PTR_TO_ID(n));
@@ -88,7 +92,7 @@ void system_print_number_only(struct recs *ecs) {
   while(recs_ent_iter_has_next(&iter)) {
     recs_entity e = recs_ent_iter_next(ecs, &iter);
     struct number_component *n = recs_entity_get_component(ecs, e, MAP_COMP_PTR_TO_ID(n));
-    printf("Entity %d with TAG_A and TAG_B has number %llu\n", e, n->num);
+    printf("Entity %d with TAG_A and TAG_B has number %llu\n", RECS_ENT_ID(e), n->num);
   }
 }
 
@@ -145,7 +149,8 @@ int main(void) {
   recs_system_run(ecs, SYSTEM_GROUP_UPDATE);
 
   //remove the 1st entity
-  recs_entity_remove(ecs, e);
+  recs_entity_queue_remove(ecs, e);
+  recs_entity_remove_queued(ecs);
 
 
   //ecs needs to be freed once it is no longer needed.

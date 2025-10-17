@@ -30,8 +30,8 @@ struct number_component {
 
 
 
-RECS_INIT_COMP_IDS(component, COMPONENT_MESSAGE, COMPONENT_NUMBER);
-RECS_INIT_TAG_IDS(tag, TAG_A, TAG_B);
+RECS_INIT_COMP_IDS(component, COMPONENT_MESSAGE, COMPONENT_NUMBER, COMPONENT_COUNT);
+RECS_INIT_TAG_IDS(tag, TAG_A, TAG_B, TAG_COUNT);
 RECS_INIT_SYS_GRP_IDS(system_group, SYSTEM_GROUP_A, SYSTEM_GROUP_B);
 
 
@@ -50,13 +50,18 @@ void system_print_message(struct recs *ecs) {
 
   printf("========== System Print Message ==========\n");
 
-  //iterate through every entity
-  for(uint32_t i = 0; i < recs_num_active_entities(ecs); i++) {
+  uint8_t exclude_mask[RECS_GET_BITMASK_SIZE(COMPONENT_COUNT, TAG_COUNT)];
+  recs_bitmask_create(ecs, exclude_mask, 0, NULL, 0, NULL);
+
+  //iterate through EVERY entity
+  recs_ent_iter iter = recs_ent_iter_init_with_exclude(ecs, NULL, exclude_mask);
+
+  while(recs_ent_iter_has_next(&iter)) {
 
     //grab our entity ID
-    recs_entity e = recs_entity_get(ecs, i);
+    recs_entity e = recs_ent_iter_next(ecs, &iter);
 
-    printf("Entity Id: %u\n", e);
+    printf("Entity Id: %u\n", RECS_ENT_ID(e));
 
     //check if our entity has a specific component, if it does, grab that component
     //and do something with it.
@@ -65,7 +70,7 @@ void system_print_message(struct recs *ecs) {
 
       printf("Message: %s\n", m->message);
     }
-    printf("End of Entity %u\n\n", e);
+    printf("End of Entity %u\n\n", RECS_ENT_ID(e));
 
   }
 
@@ -76,19 +81,24 @@ void system_print_number(struct recs *ecs) {
 
   printf("========== System Print Number ==========\n");
 
-  //iterate through every entity
-  for(uint32_t i = 0; i < recs_num_active_entities(ecs); i++) {
+  uint8_t exclude_mask[RECS_GET_BITMASK_SIZE(COMPONENT_COUNT, TAG_COUNT)];
+  recs_bitmask_create(ecs, exclude_mask, 0, NULL, 0, NULL);
+
+  //iterate through EVERY entity
+  recs_ent_iter iter = recs_ent_iter_init_with_exclude(ecs, NULL, exclude_mask);
+
+  while(recs_ent_iter_has_next(&iter)) {
 
     //grab our entity ID
-    recs_entity e = recs_entity_get(ecs, i);
+    recs_entity e = recs_ent_iter_next(ecs, &iter);
 
-    printf("Entity Id: %u\n", e);
+    printf("Entity Id: %u\n", RECS_ENT_ID(e));
 
     if(recs_entity_has_component(ecs, e, COMPONENT_NUMBER)) {
       struct number_component *m = recs_entity_get_component(ecs, e, MAP_COMP_PTR_TO_ID(m));
       printf("Number: %llu\n", m->num);
     }
-    printf("End of Entity %u\n\n", e);
+    printf("End of Entity %u\n\n", RECS_ENT_ID(e));
 
   }
 
@@ -98,13 +108,18 @@ void system_print_number(struct recs *ecs) {
 void system_print_tags(struct recs *ecs) {
   printf("========== System Print Tags ==========\n");
 
-  //iterate through every entity
-  for(uint32_t i = 0; i < recs_num_active_entities(ecs); i++) {
+  uint8_t exclude_mask[RECS_GET_BITMASK_SIZE(COMPONENT_COUNT, TAG_COUNT)];
+  recs_bitmask_create(ecs, exclude_mask, 0, NULL, 0, NULL);
+
+  //iterate through EVERY entity
+  recs_ent_iter iter = recs_ent_iter_init_with_exclude(ecs, NULL, exclude_mask);
+
+  while(recs_ent_iter_has_next(&iter)) {
 
     //grab our entity ID
-    recs_entity e = recs_entity_get(ecs, i);
+    recs_entity e = recs_ent_iter_next(ecs, &iter);
 
-    printf("Entity Id: %u\n", e);
+    printf("Entity Id: %u\n", RECS_ENT_ID(e));
 
     const char *has_tag_a_str = recs_entity_has_tag(ecs, e, TAG_A) ? "true" : "false";
     const char *has_tag_b_str = recs_entity_has_tag(ecs, e, TAG_B) ? "true" : "false";
@@ -112,7 +127,7 @@ void system_print_tags(struct recs *ecs) {
     printf("Has Tag A = %s\n", has_tag_a_str);
     printf("Has Tag B = %s\n", has_tag_b_str);
 
-    printf("End of Entity %u\n\n", e);
+    printf("End of Entity %u\n\n", RECS_ENT_ID(e));
   }
 
   printf("============================================\n\n");
@@ -195,7 +210,8 @@ int main(void) {
   
 
   //remove the 1st entity
-  recs_entity_remove(ecs, a);
+  recs_entity_queue_remove(ecs, a);
+  recs_entity_remove_queued(ecs);
   run_update(ecs);
 
 

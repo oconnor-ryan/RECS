@@ -28,7 +28,7 @@ struct component_pool {
   //component data contiguous by moving the last component into the component
   //being removed. This requires us to keep track of each component->entity mapping
   //so that we can properly update our entity->comp mapping.
-  recs_entity *comp_to_entity;
+  uint32_t *comp_to_entity;
 
 };
 

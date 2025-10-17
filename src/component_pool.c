@@ -15,7 +15,7 @@ int component_pool_init(struct component_pool *ca, uint32_t component_size, uint
 
   //only allocate to max_components since that is usually equal to 
   //or less than the max_entities, making memory storage slightly more efficient.
-  size_t comp_to_ent_buffer_size = sizeof(recs_entity) * max_components;
+  size_t comp_to_ent_buffer_size = sizeof(uint32_t) * max_components;
 
 
   //allocate all memory at once needed to store raw component data,
@@ -30,7 +30,7 @@ int component_pool_init(struct component_pool *ca, uint32_t component_size, uint
 
   ca->buffer = comp_buffer;
   ca->comp_to_entity = (uint32_t*)comp_to_ent_buffer;
-  ca->entity_to_comp = (recs_entity*) ent_to_comp_buffer;
+  ca->entity_to_comp = (uint32_t*) ent_to_comp_buffer;
 
   //mark all components as not belonging to any entity. 
   //Because this game will never get to a point where there are 65000 entities or
@@ -50,7 +50,7 @@ int component_pool_init(struct component_pool *ca, uint32_t component_size, uint
 
 void *component_pool_get(struct component_pool *ca, recs_entity e) {
   
-  uint32_t component_index = ca->entity_to_comp[e];
+  uint32_t component_index = ca->entity_to_comp[RECS_ENT_ID(e)];
 
   if(component_index == NO_COMP_ID) {
     return NULL;
@@ -66,15 +66,15 @@ void component_pool_add(struct component_pool *ca, recs_entity e, void *componen
 
   memcpy(ca->buffer + (ca->component_size * component_index), component, ca->component_size);
 
-  ca->comp_to_entity[component_index] = e;
-  ca->entity_to_comp[e] = component_index;
+  ca->comp_to_entity[component_index] = RECS_ENT_ID(e);
+  ca->entity_to_comp[RECS_ENT_ID(e)] = component_index;
 
   ca->num_components++;
 
 }
 
 void component_pool_remove(struct component_pool *ca, recs_entity e) {
-  uint32_t component_index = ca->entity_to_comp[e];
+  uint32_t component_index = ca->entity_to_comp[RECS_ENT_ID(e)];
 
   if(component_index == NO_COMP_ID) {
     return;
@@ -96,8 +96,8 @@ void component_pool_remove(struct component_pool *ca, recs_entity e) {
   ca->comp_to_entity[component_index] = entity_at_last_component;
   ca->entity_to_comp[entity_at_last_component] = component_index;
 
-  ca->comp_to_entity[last_component_index] = e;
-  ca->entity_to_comp[e] = NO_COMP_ID;
+  ca->comp_to_entity[last_component_index] = RECS_ENT_ID(e);
+  ca->entity_to_comp[RECS_ENT_ID(e)] = NO_COMP_ID;
 
   ca->num_components--;
 
