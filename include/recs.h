@@ -149,13 +149,27 @@ recs_entity recs_entity_add(struct recs *recs);
   3. Queue an entity to be removed, but still allow it to be processed while finishing iteration.
   4. Queue an entity to be added, but not allowing it to process until iteration is done.
 
+  We currently only natively support options 1 and 2. While users of this library can 
+  technically achieve options 3 and 4 using tags and a custom system, I would like this
+  to not be necessary.
+
   This could be accomplished by adding booleans to the entity iterators, which can choose
   to skip entities being added or locking the "num_entities" limit when queuing newly added entities.
 */
 
+//queue an entity to be removed and disable it from being found in recs_ent_iter iterators.
 void recs_entity_queue_remove(struct recs *ecs, recs_entity e);
 
+//remove all entities queued for removal from the active entity pool, 
+//freeing their IDs to be reused
+//NOTE: This should only be called when NOT ITERATING OVER ENTITIES using recs_ent_iter.
+//If calling this while iterating, entities may be skipped.
 void recs_entity_remove_queued(struct recs *ecs);
+
+//immedately remove a single entity from the active entity pool.
+//NOTE: This should only be called when NOT ITERATING OVER ENTITIES using recs_ent_iter.
+//If calling this while iterating, entities may be skipped.
+void recs_entity_remove(struct recs *ecs, recs_entity e);
 
 
 //add a component to a specific entity.

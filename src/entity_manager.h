@@ -28,6 +28,7 @@ recs_entity entity_manager_add(struct entity_manager *em);
 
 void entity_manager_remove_at_index(struct entity_manager *em, uint32_t active_entity_index);
 
+void entity_manager_remove(struct entity_manager *em, recs_entity e);
 
 #endif// ENTITY_MANAGER_H
 

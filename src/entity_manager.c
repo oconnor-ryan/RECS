@@ -115,4 +115,13 @@ void entity_manager_remove_at_index(struct entity_manager *em, uint32_t active_e
   
 }
 
+void entity_manager_remove(struct entity_manager *em, recs_entity e) {
+  for(uint32_t i = 0; i < em->num_active_entities; i++) {
+    if(em->entity_pool[i] == e) {
+      entity_manager_remove_at_index(em, i);
+      break;
+    }
+  }
+}
+
 

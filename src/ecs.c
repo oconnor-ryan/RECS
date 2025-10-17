@@ -271,6 +271,24 @@ recs_entity recs_entity_add(struct recs *ecs) {
   
 }
 
+void recs_entity_remove(struct recs *ecs, recs_entity e) {
+  if(RECS_ENT_ID(e) == RECS_NO_ENTITY_ID) return;
+
+  //update version number
+  if(RECS_ENT_VERSION(e) == ecs->ent_man.ent_versions_list[RECS_ENT_ID(e)]) {
+    ecs->ent_man.ent_versions_list[RECS_ENT_ID(e)]++;
+  }
+
+
+
+  //delete components
+  recs_entity_remove_all_components(ecs, e);
+
+  //remove from active entity pool
+  entity_manager_remove(&ecs->ent_man, e);
+
+}
+
 void recs_entity_queue_remove(struct recs *ecs, recs_entity e) {
   ecs->ent_man.ent_versions_list[RECS_ENT_ID(e)]++;
 }
