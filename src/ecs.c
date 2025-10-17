@@ -277,10 +277,10 @@ void recs_entity_queue_remove(struct recs *ecs, recs_entity e) {
 
 void recs_entity_remove_queued(struct recs *ecs) {
   if(ecs->ent_man.num_active_entities == 0) return;
-  
+
   //move in reversed order since the index does not need to be modified when removing entities
-  for(uint32_t i = ecs->ent_man.num_active_entities-1; 1; i--) {
-    recs_entity e = ecs->ent_man.entity_pool[i];
+  for(uint32_t i = ecs->ent_man.num_active_entities; i > 0; i--) {
+    recs_entity e = ecs->ent_man.entity_pool[i-1];
     if(recs_entity_active(ecs, e)) continue;
 
     //delete components
@@ -289,7 +289,6 @@ void recs_entity_remove_queued(struct recs *ecs) {
     //remove from active entity pool
     entity_manager_remove_at_index(&ecs->ent_man, i);
 
-    if(i == 0) break;
 
   }
 }
