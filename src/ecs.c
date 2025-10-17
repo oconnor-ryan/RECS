@@ -287,7 +287,7 @@ void recs_entity_remove_queued(struct recs *ecs) {
     recs_entity_remove_all_components(ecs, e);
 
     //remove from active entity pool
-    entity_manager_remove_at_index(&ecs->ent_man, i);
+    entity_manager_remove_at_index(&ecs->ent_man, i-1);
 
 
   }
