@@ -476,12 +476,12 @@ static recs_entity recs_ent_iter_find(struct recs *ecs, recs_ent_iter *iter) {
     }
   }
   
-  return RECS_NO_ENTITY_ID;
+  return RECS_NO_ENTITY;
 }
 
 recs_ent_iter recs_ent_iter_init(struct recs *ecs, uint8_t *mask) {
   recs_ent_iter iter = {
-    .next_entity = RECS_NO_ENTITY_ID,
+    .next_entity = RECS_NO_ENTITY,
     .index = 0,
     .include_bitmask = mask,
     .exclude_bitmask = NULL,
@@ -506,7 +506,7 @@ recs_ent_iter recs_ent_iter_init(struct recs *ecs, uint8_t *mask) {
 
 recs_ent_iter recs_ent_iter_init_with_exclude(struct recs *ecs, uint8_t *include_mask, uint8_t *exclude_mask) {
   recs_ent_iter iter = {
-    .next_entity = RECS_NO_ENTITY_ID,
+    .next_entity = RECS_NO_ENTITY,
     .index = 0,
     .include_bitmask = include_mask,
     .exclude_bitmask = exclude_mask,

@@ -30,12 +30,16 @@
 
 
 
+
 //get the size (in bytes) of the bitmask being used to check tags and components.
 #define RECS_GET_BITMASK_SIZE(max_components, max_tags) (((max_components) + (max_tags) + 8 - 1) / 8)
 
 #define RECS_ENT_FROM(id, version) ((recs_entity) (((uint64_t)(id)) | ((uint64_t)(version) << 32)))
 #define RECS_ENT_VERSION(ent) ((uint32_t)((ent) >> 32))
 #define RECS_ENT_ID(ent) ((uint32_t)(ent))
+
+#define RECS_NO_ENTITY (RECS_ENT_FROM(RECS_NO_ENTITY_ID, 0))
+
 
 
 //used to check if the recs_entity contains the RECS_NO_ENTITY_ID (indicating a non-existant id)
