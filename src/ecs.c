@@ -373,7 +373,9 @@ void* recs_component_get(struct recs *recs, recs_component c, uint32_t index) {
   return p->buffer + (index * p->component_size);
 }
 
-int recs_entity_has_components(struct recs *ecs, recs_entity e, uint8_t *mask) {
+
+
+int recs_entity_matches_component_mask(struct recs *ecs, recs_entity e, uint8_t *mask, enum recs_ent_match_op match_op) {
   /*
   struct recs_comp_bitmask res;
   bitmask_and(&res, ecs->comp_bitmask_list + e, &mask);
@@ -388,9 +390,21 @@ int recs_entity_has_components(struct recs *ecs, recs_entity e, uint8_t *mask) {
   //check all bytes except last one
   for(uint32_t i = 0; i < ecs->comp_bitmask_size - 1; i++) {
     uint8_t res = mask_for_entity[i] & mask[i];
-    if(res != mask[i]) {
-      return 0;
+    switch(match_op) {
+      case RECS_ENT_MATCH_ALL: {
+        if(res != mask[i]) {
+          return 0;
+        }
+        break;
+      }
+      case RECS_ENT_MATCH_ANY: {
+        if(res != 0) {
+          return 1;
+        }
+        break;
+      }
     }
+    
   }
 
   //only check the LSB on the last byte
@@ -402,40 +416,26 @@ int recs_entity_has_components(struct recs *ecs, recs_entity e, uint8_t *mask) {
   uint8_t last_byte1 = mask_for_entity[ecs->comp_bitmask_size-1] & ((uint8_t)0xFF >> num_unused_bits);
   uint8_t last_byte2 = mask[ecs->comp_bitmask_size-1] & ((uint8_t)0xFF >> num_unused_bits);
 
-  return (last_byte1 & last_byte2) == last_byte2;
-  
+  switch(match_op) {
+    case RECS_ENT_MATCH_ALL: {
+      return (last_byte1 & last_byte2) == last_byte2;
+    }
+    case RECS_ENT_MATCH_ANY: {
+      return (last_byte1 & last_byte2) != 0;
+    }
+
+  }
 }
 
 
 
+int recs_entity_has_components(struct recs *ecs, recs_entity e, uint8_t *mask) {
+  return recs_entity_matches_component_mask(ecs, e, mask, RECS_ENT_MATCH_ALL);
+}
+
+
 int recs_entity_has_excluded_components(struct recs *ecs, recs_entity e, uint8_t *mask) {
-  //We cannot use temporary variable to invert the mask since the bitmask is dynamically sized, and we
-  //want to avoid dynamic allocations here, so we will 
-  //check in byte-sized portions.
-
-  uint8_t *mask_for_entity = bitmask_list_get(&ecs->comp_bitmask_list, RECS_ENT_ID(e));
-
-  //check all bytes except last one
-  for(uint32_t i = 0; i < ecs->comp_bitmask_size - 1; i++) {
-    //invert mask for entity to show what components it does NOT HAVE
-    uint8_t res = (~mask_for_entity[i]) & mask[i];
-    if(res != mask[i]) {
-      return 0;
-    }
-  }
-
-  //only check the LSB on the last byte
-
-  //get number of bits (starting from MSB) that we are setting to 0 so that we can check the equality of the LSB bits.
-  const uint8_t num_unused_bits = 7 - ((ecs->max_registered_components + ecs->max_tags) & 7);
-
-  //grab the last byte and AND with (0xFF >> num_unused_bits) to set all unused MSB bits to 0
-  uint8_t last_byte1 = mask_for_entity[ecs->comp_bitmask_size-1] & ((uint8_t)0xFF >> num_unused_bits);
-  uint8_t last_byte2 = mask[ecs->comp_bitmask_size-1] & ((uint8_t)0xFF >> num_unused_bits);
-
-  //dont forget to invert
-  return ((~last_byte1) & last_byte2) == last_byte2;
-  
+  return !recs_entity_matches_component_mask(ecs, e, mask, RECS_ENT_MATCH_ANY);
 }
 
 uint8_t recs_entity_active(struct recs *ecs, recs_entity e) {
@@ -467,8 +467,11 @@ static recs_entity recs_ent_iter_find(struct recs *ecs, recs_ent_iter *iter) {
     //active pool yet.
     if(!recs_entity_active(ecs, e)) continue;
 
-    uint8_t has_comps =    iter->include_bitmask == NULL || (iter->include_bitmask != NULL && recs_entity_has_components(ecs, e, iter->include_bitmask));
-    uint8_t has_ex_comps = iter->exclude_bitmask == NULL || (iter->exclude_bitmask != NULL && recs_entity_has_excluded_components(ecs, e, iter->exclude_bitmask));
+    //uint8_t has_comps =    iter->include_bitmask == NULL || (iter->include_bitmask != NULL && recs_entity_has_components(ecs, e, iter->include_bitmask));
+    //uint8_t has_ex_comps = iter->exclude_bitmask == NULL || (iter->exclude_bitmask != NULL && recs_entity_has_excluded_components(ecs, e, iter->exclude_bitmask));
+
+    uint8_t has_comps =    iter->include_bitmask == NULL || (iter->include_bitmask != NULL && recs_entity_matches_component_mask(ecs, e, iter->include_bitmask, iter->include_op));
+    uint8_t has_ex_comps = iter->exclude_bitmask == NULL || (iter->exclude_bitmask != NULL && !recs_entity_matches_component_mask(ecs, e, iter->exclude_bitmask, iter->exclude_op));
 
     if(has_comps && has_ex_comps) {
       iter->index++;
@@ -480,6 +483,26 @@ static recs_entity recs_ent_iter_find(struct recs *ecs, recs_ent_iter *iter) {
 }
 
 recs_ent_iter recs_ent_iter_init(struct recs *ecs, uint8_t *mask) {
+  recs_ent_iter iter = {
+    .next_entity = RECS_NO_ENTITY,
+    .index = 0,
+    .include_bitmask = mask,
+    .include_op = RECS_ENT_MATCH_ALL,
+    .exclude_bitmask = NULL,
+    .exclude_op = RECS_ENT_MATCH_ANY
+  };
+
+
+  //we need to find the 1st element such that when we call next(), we can obtain the next element.
+  iter.next_entity = recs_ent_iter_find(ecs, &iter);
+
+  //state that this iterator has performed a search for the next entity
+  //iter.checked_for_next = 1;
+
+  return iter;
+}
+
+recs_ent_iter recs_ent_iter_init_with_match(struct recs *ecs, uint8_t *mask, enum recs_ent_match_op match_op) {
   recs_ent_iter iter = {
     .next_entity = RECS_NO_ENTITY,
     .index = 0,
@@ -509,7 +532,30 @@ recs_ent_iter recs_ent_iter_init_with_exclude(struct recs *ecs, uint8_t *include
     .next_entity = RECS_NO_ENTITY,
     .index = 0,
     .include_bitmask = include_mask,
+    .include_op = RECS_ENT_MATCH_ALL,
     .exclude_bitmask = exclude_mask,
+    .exclude_op = RECS_ENT_MATCH_ANY,
+
+  };
+
+  //we need to find the 1st element such that when we call next(), we can obtain the next element.
+  //we need to find the 1st element such that when we call next(), we can obtain the next element.
+  iter.next_entity = recs_ent_iter_find(ecs, &iter);
+
+  //state that this iterator has performed a search for the next entity
+  //iter.checked_for_next = 1;
+
+  return iter;
+}
+
+recs_ent_iter recs_ent_iter_init_with_exclude_and_match_op(struct recs *ecs, uint8_t *include_mask, enum recs_ent_match_op include_match_op, uint8_t *exclude_mask, enum recs_ent_match_op exclude_match_op) {
+   recs_ent_iter iter = {
+    .next_entity = RECS_NO_ENTITY,
+    .index = 0,
+    .include_bitmask = include_mask,
+    .include_op = include_match_op,
+    .exclude_bitmask = exclude_mask,
+    .exclude_op = exclude_match_op
   };
 
   //we need to find the 1st element such that when we call next(), we can obtain the next element.

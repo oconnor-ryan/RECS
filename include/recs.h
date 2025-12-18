@@ -46,6 +46,13 @@
 #define RECS_ENTITY_NONE(ent) (RECS_ENT_ID(ent) == RECS_NO_ENTITY_ID)
 
 
+// logical operators to use when iterating over entities in recs_ent_iter
+enum recs_ent_match_op {
+  RECS_ENT_MATCH_ALL, //make sure entity has a specific relation with ALL listed components
+  RECS_ENT_MATCH_ANY, //make sure entity has a specific relation with ANY listed components
+
+};
+
 typedef uint32_t recs_component;
 typedef uint64_t recs_entity;
 typedef uint32_t recs_tag;
@@ -57,7 +64,16 @@ typedef struct recs_entity_iterator {
   recs_entity next_entity;
   uint32_t index;
   uint8_t *include_bitmask;
+
+  // default operation is an ALL
+  enum recs_ent_match_op include_op;
+
   uint8_t *exclude_bitmask;
+
+  // default operation is an ANY 
+  enum recs_ent_match_op exclude_op;
+
+
 
   //the maximum index in the active entity list to search though.
   //If 0, this index is ignored and the iterator will continue iterating
@@ -205,6 +221,8 @@ int recs_entity_has_components(struct recs *recs, recs_entity e, uint8_t *mask);
 //check if an entity does NOT HAVE ANY of the components and tags specified in the bitmask.
 int recs_entity_has_excluded_components(struct recs *ecs, recs_entity e, uint8_t *mask);
 
+// check if entity's component mask matches the provided mask based on the matching operator
+int recs_entity_matches_component_mask(struct recs *ecs, recs_entity e, uint8_t *mask, enum recs_ent_match_op match_op);
 
 //retrieve the component of a specific entity.
 void* recs_entity_get_component(struct recs *recs, recs_entity e, recs_component c);
@@ -221,7 +239,12 @@ void recs_bitmask_create(struct recs *recs, uint8_t *mask, const uint32_t num_co
 //initialize an iterator to go through the list of active entities.
 recs_ent_iter recs_ent_iter_init(struct recs *ecs, uint8_t *mask);
 
+recs_ent_iter recs_ent_iter_init_with_match(struct recs *ecs, uint8_t *mask, enum recs_ent_match_op match_op);
+
+
 recs_ent_iter recs_ent_iter_init_with_exclude(struct recs *ecs, uint8_t *include_mask, uint8_t *exclude_mask);
+
+recs_ent_iter recs_ent_iter_init_with_exclude_and_match_op(struct recs *ecs, uint8_t *include_mask, enum recs_ent_match_op include_match_op, uint8_t *exclude_mask, enum recs_ent_match_op exclude_match_op);
 
 
 //check if there are any more active entities left to process that have 
