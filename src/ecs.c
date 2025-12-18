@@ -506,7 +506,9 @@ recs_ent_iter recs_ent_iter_init_with_match(struct recs *ecs, uint8_t *mask, enu
   recs_ent_iter iter = {
     .next_entity = RECS_NO_ENTITY,
     .index = 0,
+    .include_op = match_op,
     .include_bitmask = mask,
+    .exclude_op = RECS_ENT_MATCH_ANY,
     .exclude_bitmask = NULL,
   };
 
