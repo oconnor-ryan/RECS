@@ -410,7 +410,30 @@ int recs_entity_matches_component_mask(struct recs *ecs, recs_entity e, uint8_t 
   //only check the LSB on the last byte
 
   //get number of bits (starting from MSB) that we are setting to 0 so that we can check the equality of the LSB bits.
-  const uint8_t num_unused_bits = 7 - ((ecs->max_registered_components + ecs->max_tags) & 7);
+  
+  //do not account for when mask_bits == 0, as this should not be possible
+  //when mask_bits = 1, num_unused_bits = 7
+  //when mask_bits = 2, num_unused_bits = 6
+  //when mask_bits = 3, num_unused_bits = 5
+  //when mask_bits = 4, num_unused_bits = 4
+  //when mask_bits = 7, num_unused_bits = 1
+  //when mask_bits = 8, num_unused_bits = 0
+  //when mask_bits = 9, num_unused_bits = 7
+  
+  // if mask_bits % 8 != 0
+    //num_unused_bits == 8 - (mask_bits % 8) == 8 - (mask_bits & 7)
+  // else
+  // num_unused_bits = 0
+  
+  const uint32_t mask_bits = ecs->max_registered_components + ecs->max_tags;
+  const uint8_t num_unused_bits = (mask_bits & 7) == 0 ? 0 : 8 - (mask_bits & 7);
+
+  
+
+
+
+
+
 
   //grab the last byte and AND with (0xFF >> num_unused_bits) to set all unused MSB bits to 0
   uint8_t last_byte1 = mask_for_entity[ecs->comp_bitmask_size-1] & ((uint8_t)0xFF >> num_unused_bits);
