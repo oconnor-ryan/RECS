@@ -43,28 +43,4 @@ void bitmask_and(uint8_t *dest, uint8_t *op1, uint8_t *op2, uint32_t bitmask_siz
   }
 }
 
-uint8_t bitmask_eq(uint8_t *op1, uint8_t *op2, uint64_t bitmask_num_bits) {
-  uint32_t bitmask_size = BYTE_INDEX(bitmask_num_bits);
-
-  //the last byte will NOT use the full 8 bits if the RECS_MAX_COMPONENTS + RECS_MAX_TAGS are not a multiple of 8.
-  //Thus we will need to set the MSB bits of the last byte to a consistant value (ususally 0).
-  for(uint32_t i = 0; i < bitmask_size - 1; i++) {
-    if(op1[i] != op2[i]) {
-      return 0;
-    }
-  }
-
-  //RECS_COMP_BITMASK_NUM_BITS & 7 == 0, then all bits are being checked
-  //RECS_COMP_BITMASK_NUM_BITS & 7 == 1, then all but 1 bit is being checked
-
-  //get number of bits (starting from MSB) that we are setting to 0 so that we can check the equality of the LSB bits.
-  const uint8_t num_unused_bits = bitmask_num_bits & 7;
-
-  //grab the last byte and AND with (0xFF >> num_unused_bits) to set all unused MSB bits to 0
-  uint8_t last_byte1 = op1[bitmask_size-1] & ((uint8_t)0xFF >> num_unused_bits);
-  uint8_t last_byte2 = op2[bitmask_size-1] & ((uint8_t)0xFF >> num_unused_bits);
-
-  return (last_byte1 & last_byte2) == last_byte2;
-}
-
 

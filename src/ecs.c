@@ -376,14 +376,6 @@ void* recs_component_get(struct recs *recs, recs_component c, uint32_t index) {
 
 
 int recs_entity_matches_component_mask(struct recs *ecs, recs_entity e, uint8_t *mask, enum recs_ent_match_op match_op) {
-  /*
-  struct recs_comp_bitmask res;
-  bitmask_and(&res, ecs->comp_bitmask_list + e, &mask);
-
-  return bitmask_eq(&res, &mask);
-  */
-  //rather than using the bitmask's version of AND and EQUAL, we can roll our own in-place version.
-  //Since we don't know the size of the bitmask and want to avoid using MALLOC, we will check each byte instead.
 
   uint8_t *mask_for_entity = bitmask_list_get(&ecs->comp_bitmask_list, RECS_ENT_ID(e));
 

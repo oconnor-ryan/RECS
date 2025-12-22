@@ -21,6 +21,5 @@ uint8_t bitmask_test(uint8_t *mask, uint64_t bit_index);
 
 void bitmask_and(uint8_t *dest, uint8_t *op1, uint8_t *op2, uint32_t bitmask_size);
 
-uint8_t bitmask_eq(uint8_t *op1, uint8_t *op2, uint64_t bitmask_num_bits);
 
 #endif// BITMASK_H
