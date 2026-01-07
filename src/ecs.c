@@ -440,6 +440,7 @@ int recs_entity_matches_component_mask(struct recs *ecs, recs_entity e, uint8_t 
     }
 
   }
+  return 0;
 }
 
 
