@@ -70,7 +70,7 @@ void system_print_number_only(struct recs *ecs) {
   while(recs_ent_iter_has_next(&iter)) {
     recs_entity e = recs_ent_iter_next(ecs, &iter);
     struct number_component *n = recs_entity_get_component(ecs, e, MAP_COMP_PTR_TO_ID(n));
-    printf("Entity %d with TAG_A and TAG_B has number %llu\n", e, n->num);
+    printf("Entity %llu with TAG_A and TAG_B has number %llu\n", e, n->num);
 
     //record entity in testing list
     test_list->list[test_list->num_entities] = e;

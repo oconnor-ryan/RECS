@@ -194,15 +194,15 @@ recs recs_copy(recs og) {
   //copy entity manager
   ecs->ent_man.max_entities = max_entities;
   ecs->ent_man.num_active_entities = og->ent_man.num_active_entities;
-  ecs->ent_man.entity_pool = entity_id_buffer;
-  ecs->ent_man.ent_versions_list = entity_version_buffer;
+  ecs->ent_man.entity_pool = (recs_entity*)entity_id_buffer;
+  ecs->ent_man.ent_versions_list = (uint32_t*)entity_version_buffer;
   memcpy(ecs->ent_man.entity_pool, og->ent_man.entity_pool, entity_id_buffer_size);
   memcpy(ecs->ent_man.ent_versions_list, og->ent_man.ent_versions_list, entity_version_buffer_size);
 
   //copy systems
-  ecs->systems = system_buffer;
+  ecs->systems = (struct recs_system*)system_buffer;
   memcpy(ecs->systems, og->systems, system_buffer_size);
-  ecs->system_group_mappers = system_mapper_buffer;
+  ecs->system_group_mappers = (struct system_group_mapper*) system_mapper_buffer;
   memcpy(ecs->system_group_mappers, og->system_group_mappers, system_mapper_buffer_size);
   
 
@@ -213,7 +213,7 @@ recs recs_copy(recs og) {
   memcpy(ecs->comp_bitmask_list.buffer, og->comp_bitmask_list.buffer, bitmask_buffer_size);
 
   //copy component pool objects
-  ecs->recs_component_stores = component_pool_buffer;
+  ecs->recs_component_stores = (struct component_pool *)component_pool_buffer;
   memcpy(ecs->recs_component_stores, og->recs_component_stores, component_pool_buffer_size);
 
   //copy each component pool's component data
