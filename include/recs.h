@@ -114,6 +114,9 @@ typedef void (*recs_system_func)(struct recs *ecs);
 //allocate and initialize a RECS instance. Returns NULL if initialization failed.
 recs recs_init(uint32_t max_entities, uint32_t max_components, uint32_t max_tags, uint32_t max_systems, uint32_t max_sys_groups, void *context);
 
+//performs a deep copy of the ECS and returns a pointer to the new copy, or NULL if it fails.
+recs recs_copy(recs ecs);
+
 //free RECS instance from memory, destroying all entities, components, and systems
 void recs_free(struct recs *recs);
 

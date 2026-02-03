@@ -2,7 +2,15 @@
 
 > Note that this library is still a work-in-progress, so expect breaking changes to be introduced in future updates until I consider this library stable.
 
-This is a basic implementation of a generic Entity-Component-System. This uses sparse sets and component pools for storing component data and mapping entity IDs to their components. 
+This is a basic implementation of a sparse-set Entity-Component-System. This uses sparse sets and component pools for storing component data and mapping entity IDs to their components. 
+
+## Design Philosophy
+This ECS is designed to allocate all the memory it will ever need at the beginning of an app's lifetime.
+This makes the ECS quite performant, since it has no need to allocate and free memory during gameplay.
+
+However, this means that you cannot change the maximum number of entities, components, and systems once you initialize the ECS and register its components. For example, if you initialize this ECS to hold 1000 entities, you cannot add more than 1000 entities, nor can you reduce the maximum number of entities. Thus, make sure to properly set these values based on the requirements of your application.
+
+If your application requires you to dynamically update any of the above values, you should use another ECS library.
 
 ## Building This Library
 
@@ -25,8 +33,7 @@ just generated.
 
 ## Building The Example Code (Optional)
 
-You will need the following dependencies installed in order to build
-the examples that I included:
+You will need the following dependencies installed in order to build the examples that I included:
 - CMake >= 3.15
 - A C compiler that supports C11 standard (some examples utilize C11 features for convenience)
 
@@ -40,8 +47,7 @@ To build the example code for using the RECS library:
 
 ## Running The Tests
 
-You will need the following dependencies installed in order to build
-the tests that I included:
+You will need the following dependencies installed in order to build the tests that I included:
 - CMake >= 3.15
 - A C compiler that supports C11 standard (some examples utilize C11 features for convenience)
 
@@ -83,11 +89,9 @@ By organizing your game objects and their behaviors this way, you can easily add
 ## Features:
   - Add and remove entities
   - Attach components and tags to entities
-  - Register systems and assign them one of 2 tags:
-    - `RECS_SYSTEM_TYPE_UPDATE`
-      - Used to run game logic and physics updates
-    - `RECS_SYSTEM_TYPE_RENDER`
-      - Used to render entities to the screen
+  - Register systems and group them using an enum that you define.
+  - Make a deep copy of your ECS in memory
+    - Useful for games that allow you to roll back to a previous game state
 
   - Support for entity tags, which are essentially components with no attached data
   - Users can add custom malloc(), free(), and assert() implementations into this library
@@ -266,7 +270,7 @@ int main(void) {
 ## Potential Upcoming Features
 - Allow more efficient way to query entities within systems based on their components and tags.
   - Perhaps users could tell the ECS what types of queries they want to make on initialization of ECS, that way each entity gets stored within a specific array containing entities with the same set of elements.
-
+- Allow ECS to be serialized and deserialized. This allows you to save ECS state to a file and restore the ECS from a file.
 
 
 ## External Resources About ECS and Other ECS Projects
