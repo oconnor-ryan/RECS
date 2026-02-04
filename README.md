@@ -8,9 +8,9 @@ This is a basic implementation of a sparse-set Entity-Component-System. This use
 This ECS is designed to allocate all the memory it will ever need at the beginning of an app's lifetime.
 This makes the ECS quite performant, since it has no need to allocate and free memory during gameplay.
 
-However, this means that you cannot change the maximum number of entities, components, and systems once you initialize the ECS and register its components. For example, if you initialize this ECS to hold 1000 entities, you cannot add more than 1000 entities, nor can you reduce the maximum number of entities. Thus, make sure to properly set these values based on the requirements of your application.
+However, this means that you cannot change the maximum number of entities, components, and systems once you initialize the ECS. For example, if you initialize this ECS to hold 1000 entities, you cannot add more than 1000 entities, nor can you reduce the maximum number of entities. Thus, make sure to properly set these values based on the requirements of your application. You can also utilize multiple ECS instances to handle different sets of component types and systems, depending on your use case.
 
-If your application requires you to dynamically update any of the above values, you should use another ECS library.
+If your application requires you to dynamically update any of the above values within the same ECS, you should use another ECS library.
 
 ## Building This Library
 
@@ -26,7 +26,7 @@ To build the library, you will run:
 `cmake --build build --target recs`
 
 Once you generate the library file, you will also need to 
-grab the `recs.h` file within the `src` directory and include it into
+grab the `recs.h` file within the `include` directory and include it into
 your project. This header allows you to interface with the library you
 just generated.
 

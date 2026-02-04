@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(recs VERSION 0.1 LANGUAGES C)
+project(recs VERSION 0.2 LANGUAGES C)
 
 set(CMAKE_BUILD_TYPE "Debug")
 

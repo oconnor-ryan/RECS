@@ -116,26 +116,10 @@ uint32_t recs_num_active_entities(struct recs *recs) {
   return recs->ent_man.num_active_entities;
 }
 
-/* TODO: Rather than dynamically adding/removing components via recs_component_register, 
-force all components to be registered at once via recs_init. This ECS is already designed such that certain attributes are unchangable
-after being initialized, such as the number of entities, the number of component types and tags, number of systems, etc.
 
-
-Knowing this, what are the chances that someone using this inflexible ECS will ever need to unregister their current
-component and register a completely different component under the same component_type value? I can't think of a good use
-case. This also requires new memory to be allocated, which then requires the user to perform error handling if this allocation fails.
-
-Same case with systems. Why should I allow reassigning a system's function pointer when the user can instead just have that function
-perform conditional logic to execute the function they want? Only allowing systems to be set up front in the recs_init function
-simplifies creating the ECS.
-
-This also reduces the chance of undefined behavior occurring as a result of someone trying to access a component
-they forgot to register (like I've done many times...)
-*/
-
-
-
-
+// Initialize the ECS.
+// Note that you must provide all of the component types and systems you will use for this ECS into the configuration
+// struct.
 recs recs_init(struct recs_init_config config) {
 
 
@@ -343,8 +327,8 @@ recs recs_copy(recs og) {
   //update pointers in entity manager
   uint8_t *entity_id_buffer =      big_buffer + recs_buffer_size;
   uint8_t *entity_version_buffer = entity_id_buffer + entity_id_buffer_size;
-  ecs->ent_man.entity_pool = entity_id_buffer;
-  ecs->ent_man.ent_versions_list = entity_version_buffer;
+  ecs->ent_man.entity_pool = (recs_entity*)entity_id_buffer;
+  ecs->ent_man.ent_versions_list = (uint32_t*)entity_version_buffer;
 
   //copy values from old entity manager to the new one
   memcpy(ecs->ent_man.entity_pool, og->ent_man.entity_pool, entity_id_buffer_size);

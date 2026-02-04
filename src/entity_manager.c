@@ -2,30 +2,13 @@
 
 /*
   In order to make it possible to add and remove entities during iteration, 
-  we could use the following methods:
+  we could use the following method:
 
-  - Use a sparse array that has a NULL sentinal that skips over NULL sentinal values.
-    - Simple to do, but requires the chance of iterating over MAX_ENTITIES amount of ID slots.
-  - Rather than storing the list of active ids, we store the list of active recs_entity.
-    - When we iterate though this list, when we find an inactive id, rather than having to increment/decrement the iterator's index,
-      we simply ignore skip over this ID until we finish iteration, where we can update our active entity id list on the LAST ID
-      that the iterator finds
-    - This does not work when using nested iterators, as our active list gets updated after the 
-      inner iterator finishes, but not the outer
-
-  - We can have RECS track what iterators are currently active, and once all iterators have finished
-    iterating, we update our active entity ID list.
-    - We could also do what Flecs does and add  "defer_start" and "defer_end" functions between
-      the iterations that are occurring. This allows us to queue what entities need to be added/removed
-      after iteration is complete
-    - This way, we don't have to store any iterators, though the user is responsible for ensuring
-      that there is no iterations being performed after completing the defers.
-    - If we store our active IDs as a list of recs_entity rather than just the ID, we could just skip over
-      recently deleted active IDs during iteration, then call a function to permanently free those IDs to the inactive ID pool.
-      As for inactive ids, we can "cheat" by giving them an unused version number. This way, 
-      both the active and inactive ids are the same size and we can still use our method of filling
-      holes left behind by removed ids.
-
+  - If we store our active IDs as a list of recs_entity rather than just the ID, we could just skip over
+  recently deleted active IDs during iteration, then call a function to permanently free those IDs to the inactive ID pool.
+  As for inactive ids, we can "cheat" by giving them an unused version number. This way, 
+  both the active and inactive ids are the same size and we can still use our method of filling
+  holes left behind by removed ids.
 */
 /*
   We first initialize a set with the IDs 1 through MAX_ENTITIES.
