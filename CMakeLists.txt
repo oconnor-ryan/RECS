@@ -15,7 +15,6 @@ add_library(${ECS} STATIC
   src/entity_manager.c
   src/component_pool.c
   src/bitmask.c
-  src/bitmask_list.c
 )
 
 #-Werror was removed

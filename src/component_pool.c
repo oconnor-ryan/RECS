@@ -3,32 +3,22 @@
 #define NO_COMP_ID RECS_NO_ENTITY_ID
 
 
-int component_pool_init(struct component_pool *ca, uint32_t component_size, uint32_t max_components, uint32_t max_entities) {
+void component_pool_init(struct component_pool *ca, unsigned char *buffer, uint32_t component_size, uint32_t max_components, uint32_t max_entities) {
   ca->num_components = 0;
   ca->component_size = component_size;
   ca->max_components = max_components;
 
-  //allocate buffer
   size_t comp_buffer_size = component_size * max_components;
-
   size_t ent_to_comp_buffer_size = sizeof(uint32_t) * max_entities;
 
-  //only allocate to max_components since that is usually equal to 
-  //or less than the max_entities, making memory storage slightly more efficient.
-  size_t comp_to_ent_buffer_size = sizeof(uint32_t) * max_components;
 
 
-  //allocate all memory at once needed to store raw component data,
-  //entity to component mapper, and component to entity mapper.
-  char *buffer = (char*)RECS_MALLOC(comp_buffer_size + ent_to_comp_buffer_size + comp_to_ent_buffer_size);
-  if(buffer == NULL) {
-    return 0;
-  }
-  char *comp_buffer = buffer;
-  char *ent_to_comp_buffer = buffer + comp_buffer_size;
-  char *comp_to_ent_buffer = buffer + comp_buffer_size + ent_to_comp_buffer_size;
 
-  ca->buffer = comp_buffer;
+  unsigned char *comp_buffer = buffer;
+  unsigned char *ent_to_comp_buffer = buffer + comp_buffer_size;
+  unsigned char *comp_to_ent_buffer = buffer + comp_buffer_size + ent_to_comp_buffer_size;
+
+  ca->buffer = (char*)comp_buffer;
   ca->comp_to_entity = (uint32_t*)comp_to_ent_buffer;
   ca->entity_to_comp = (uint32_t*) ent_to_comp_buffer;
 
@@ -45,7 +35,6 @@ int component_pool_init(struct component_pool *ca, uint32_t component_size, uint
     ca->entity_to_comp[i] = NO_COMP_ID;
   }
   
-  return 1;
 }
 
 void *component_pool_get(struct component_pool *ca, recs_entity e) {
@@ -104,10 +93,3 @@ void component_pool_remove(struct component_pool *ca, recs_entity e) {
 
 }
 
-void component_pool_free(struct component_pool *ca) {
-  //remember we made 1 big allocation starting at ca->buffer,
-  //so we only need to RECS_FREE that one buffer.
-  RECS_FREE(ca->buffer);
-  //RECS_FREE(ca->comp_to_entity);
-  //RECS_FREE(ca->entity_to_comp);
-}

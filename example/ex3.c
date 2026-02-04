@@ -171,8 +171,47 @@ int main(void) {
 
   int num_updates = 1;
 
+  struct recs_init_config_component comps[RECS_MAX_COMPONENTS] = {
+    {
+      .type = COMPONENT_MESSAGE,
+      .max_components = RECS_MAX_ENTITIES,
+      .comp_size = sizeof(struct message_component)
+    },
+    {
+      .type = COMPONENT_NUMBER,
+      .max_components = RECS_MAX_ENTITIES,
+      .comp_size = sizeof(struct number_component)
+    }
+  };
+
+  struct recs_init_config_system systems[RECS_MAX_SYSTEMS] = {
+    {
+      .func = system_print_message,
+      .group = SYSTEM_GROUP_A
+    },
+    {
+      .func = system_print_number,
+      .group = SYSTEM_GROUP_B
+    },
+    {
+      .func = system_print_tags,
+      .group = SYSTEM_GROUP_A
+    }
+  };
+
+  struct recs_init_config config = {
+    .max_entities = RECS_MAX_ENTITIES,
+    .max_component_types = RECS_MAX_COMPONENTS,
+    .max_tags = RECS_MAX_TAGS,
+    .max_systems = RECS_MAX_SYSTEMS,
+    .max_system_groups = RECS_MAX_SYS_GROUPS,
+    .context = &num_updates,
+    .components = comps,
+    .systems = systems
+  };
+
   //attempt to allocate and initialize our ECS, along with setting the context pointer.
-  struct recs *ecs = recs_init(RECS_MAX_ENTITIES, RECS_MAX_COMPONENTS, RECS_MAX_TAGS, RECS_MAX_SYSTEMS, RECS_MAX_SYS_GROUPS, &num_updates);
+  struct recs *ecs = recs_init(config);
 
 
   //will fail if we fail to allocate enough memory for the ECS.
@@ -180,23 +219,6 @@ int main(void) {
     printf("Failed to initialize!\n");
     return 1;
   }
-
-
-  // register components
-  // note that registration can fail if we cannot allocate enough memory to store our
-  // component pool
-  if(!recs_component_register(ecs, COMPONENT_MESSAGE, 10, sizeof(struct message_component))) {
-    FREE_AND_FAIL(ecs, "Failed to register component\n");
-  }
-  if(!recs_component_register(ecs, COMPONENT_NUMBER, 10, sizeof(struct number_component))) {
-    FREE_AND_FAIL(ecs, "Failed to register component\n");
-  }
-
-  //register system and assign it with the type "UPDATE"
-  recs_system_register(ecs, system_print_message, SYSTEM_GROUP_A);
-  recs_system_register(ecs, system_print_number, SYSTEM_GROUP_B);
-  recs_system_register(ecs, system_print_tags, SYSTEM_GROUP_A);
-
 
 
 

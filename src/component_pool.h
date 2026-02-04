@@ -33,7 +33,7 @@ struct component_pool {
 };
 
 
-int component_pool_init(struct component_pool *ca, uint32_t component_size, uint32_t max_components, uint32_t max_entities);
+void component_pool_init(struct component_pool *ca, unsigned char *buffer, uint32_t component_size, uint32_t max_components, uint32_t max_entities);
 
 void *component_pool_get(struct component_pool *ca, recs_entity e);
 
@@ -41,7 +41,6 @@ void *component_pool_get(struct component_pool *ca, recs_entity e);
 void component_pool_add(struct component_pool *ca, recs_entity e, void *component);
 void component_pool_remove(struct component_pool *ca, recs_entity e);
 
-void component_pool_free(struct component_pool *ca);
 
 #endif// COMPONENT_POOL_H
 

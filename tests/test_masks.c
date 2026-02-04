@@ -10,7 +10,7 @@
 #define RECS_MAX_COMPONENTS 2
 #define RECS_MAX_TAGS 2
 #define RECS_MAX_ENTITIES 10
-#define RECS_MAX_SYSTEMS 2
+#define RECS_MAX_SYSTEMS 1
 #define RECS_MAX_SYS_GROUPS 1
 
 
@@ -103,10 +103,40 @@ recs_entity make_entity_a(recs ecs) {
 
 int main(void) {
 
-  
+  struct recs_init_config_component comps[RECS_MAX_COMPONENTS] = {
+    {
+      .type = COMPONENT_MESSAGE,
+      .max_components = RECS_MAX_ENTITIES,
+      .comp_size = sizeof(struct message_component)
+    },
+    {
+      .type = COMPONENT_NUMBER,
+      .max_components = RECS_MAX_ENTITIES,
+      .comp_size = sizeof(struct number_component)
+    }
+  };
+
+  struct recs_init_config_system systems[RECS_MAX_SYSTEMS] = {
+    {
+      .func = system_print_number_only,
+      .group = SYSTEM_GROUP_UPDATE
+    },
+  };
+
+  struct recs_init_config config = {
+    .max_entities = RECS_MAX_ENTITIES,
+    .max_component_types = RECS_MAX_COMPONENTS,
+    .max_tags = RECS_MAX_TAGS,
+    .max_systems = RECS_MAX_SYSTEMS,
+    .max_system_groups = RECS_MAX_SYS_GROUPS,
+    .context = NULL,
+    .components = comps,
+    .systems = systems
+  };
+
+  recs ecs = recs_init(config);
 
   //attempt to allocate and initialize our ECS
-  struct recs *ecs = recs_init(RECS_MAX_ENTITIES, RECS_MAX_COMPONENTS, RECS_MAX_TAGS, RECS_MAX_SYSTEMS, RECS_MAX_SYS_GROUPS, NULL);
 
   //will fail if we fail to allocate enough memory for the ECS.
   if(ecs == NULL) {
@@ -114,21 +144,6 @@ int main(void) {
     return 1;
   }
 
-
-  // register components
-  uint8_t comp_register_failed = !recs_component_register(ecs, COMPONENT_MESSAGE, 10, sizeof(struct message_component));
-  comp_register_failed |= !recs_component_register(ecs, COMPONENT_NUMBER, 10, sizeof(struct number_component));
-
-  //note that component registration can fail if RECS_MALLOC() fails to 
-  //allocate enough memory for it.
-  if(comp_register_failed) {
-    recs_free(ecs);
-    printf("Failed to register component!\n");
-    return 1;
-  }
-
-  //register system and assign it with the type "UPDATE"
-  recs_system_register(ecs, system_print_number_only, SYSTEM_GROUP_UPDATE);
 
 
   recs_entity a = make_entity_a(ecs);

@@ -12,7 +12,7 @@
 struct entity_manager {
   //stores list of all unused entity IDs.
   recs_entity *entity_pool;
-
+  
   //store current version numbers for all entity IDs
   uint32_t *ent_versions_list;
 

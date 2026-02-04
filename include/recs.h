@@ -89,6 +89,35 @@ typedef struct recs *recs;
 
 typedef void (*recs_system_func)(struct recs *ecs);
 
+//configuration struct
+
+struct recs_init_config_component {
+    recs_component type;
+    size_t comp_size;
+    uint32_t max_components;
+};
+
+struct recs_init_config_system {
+  recs_system_func func;
+  recs_system_group group;
+};
+
+
+struct recs_init_config {
+  uint32_t max_entities;
+  uint32_t max_component_types;
+  uint32_t max_tags;
+  uint32_t max_systems;
+  uint32_t max_system_groups;
+  void *context;
+
+  struct recs_init_config_component *components;
+  struct recs_init_config_system *systems;
+
+  
+
+};
+
 //convienence macros for initializing enums for component ids, tags, and system groups.
 //this reduces the chance of a user making the mistake of defining custom values in their enum definition,
 //which would prevent the ECS from working correctly.
@@ -112,7 +141,7 @@ typedef void (*recs_system_func)(struct recs *ecs);
 
 
 //allocate and initialize a RECS instance. Returns NULL if initialization failed.
-recs recs_init(uint32_t max_entities, uint32_t max_components, uint32_t max_tags, uint32_t max_systems, uint32_t max_sys_groups, void *context);
+recs recs_init(struct recs_init_config config);
 
 //performs a deep copy of the ECS and returns a pointer to the new copy, or NULL if it fails.
 recs recs_copy(recs ecs);
@@ -120,13 +149,6 @@ recs recs_copy(recs ecs);
 //free RECS instance from memory, destroying all entities, components, and systems
 void recs_free(struct recs *recs);
 
-
-//register a component for entities to use.
-int recs_component_register(struct recs *recs, recs_component type, uint32_t max_instances, size_t comp_size);
-
-//unregisters a component by removing this component from all entities and deleting the 
-//component pool.
-void recs_component_unregister(struct recs *ecs, recs_component type);
 
 //get a component directly from the component pool's raw buffer.
 void* recs_component_get(struct recs *recs, recs_component c, uint32_t index);
@@ -137,11 +159,6 @@ uint32_t recs_component_num_instances(struct recs *recs, recs_component c);
 //get the entity associated with the component at the component index to the raw component buffer.
 recs_entity recs_component_get_entity(struct recs *recs, recs_component c, uint32_t comp_index);
 
-
-
-
-//register a system under a specific system group
-void recs_system_register(struct recs *recs, recs_system_func func, recs_system_group type);
 
 
 
