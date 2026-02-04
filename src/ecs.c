@@ -148,6 +148,28 @@ recs recs_init(struct recs_init_config config) {
 
   size_t bytes_per_bitmask = RECS_GET_BITMASK_SIZE(config.max_component_types, config.max_tags);
 
+  struct recs ecs_static = {
+    .max_registered_components = config.max_component_types,
+    .max_registered_systems = config.max_systems,
+    .max_system_groups = config.max_system_groups,
+    .max_tags = config.max_tags,
+    .comp_bitmask_size = bytes_per_bitmask,
+    .system_context = config.context,
+    .num_registered_systems = 0,
+    .ent_man = {
+      .max_entities = config.max_entities,
+      .num_active_entities = 0,
+      .entity_pool = NULL,
+      .ent_versions_list = NULL
+    },
+    .comp_bitmask_list = {
+      .bytes_per_mask = bytes_per_bitmask,
+      .buffer = NULL
+    },
+    .systems = NULL,
+    .system_group_mappers = NULL,
+    .recs_component_stores = NULL
+  };
 
 
 
@@ -155,10 +177,11 @@ recs recs_init(struct recs_init_config config) {
   size_t recs_buffer_size = sizeof(struct recs);
   size_t entity_id_buffer_size = sizeof(recs_entity) * config.max_entities;
   size_t entity_version_buffer_size = sizeof(uint32_t) * config.max_entities;
-  size_t component_pool_buffer_size = sizeof(struct component_pool) * config.max_component_types;
   size_t bitmask_buffer_size = bytes_per_bitmask * config.max_entities;
   size_t system_buffer_size = sizeof(struct recs_system) * config.max_systems;
   size_t system_mapper_buffer_size = sizeof(struct system_group_mapper) * config.max_system_groups;
+  size_t component_pool_buffer_size = sizeof(struct component_pool) * config.max_component_types;
+
 
   //get size for each component_pool's buffer
   size_t final_size = 0;
@@ -190,49 +213,44 @@ recs recs_init(struct recs_init_config config) {
 
   recs ecs = (recs) big_buffer;
 
+  //copy static ecs to allocated ecs
+  *ecs = ecs_static;
+
+  //init the entity manager
   uint8_t *entity_id_buffer =      big_buffer + recs_buffer_size;
   uint8_t *entity_version_buffer = entity_id_buffer + entity_id_buffer_size;
-  uint8_t *component_pool_buffer = entity_version_buffer + entity_version_buffer_size;
-  uint8_t *bitmask_buffer =        component_pool_buffer + component_pool_buffer_size;
-  uint8_t *system_buffer =         bitmask_buffer + bitmask_buffer_size;
-  uint8_t *system_mapper_buffer =  system_buffer + system_buffer_size;
-
-
-  ecs->max_registered_components = config.max_component_types;
-  ecs->max_tags = config.max_tags;
-  ecs->max_registered_systems = config.max_systems;
-  ecs->comp_bitmask_size = bytes_per_bitmask;
-  ecs->max_system_groups = config.max_system_groups;
-
-  //unneeded
-  //ecs->num_registered_components = 0;
-  ecs->num_registered_systems = 0;
-  ecs->system_context = config.context;
-
-
-  //assign all buffers to appropriate parts of ECS.
   entity_manager_init(&ecs->ent_man, entity_id_buffer, entity_version_buffer, config.max_entities);
+
+  //init the entity-component bitmask list
+  uint8_t *bitmask_buffer =        entity_version_buffer + entity_version_buffer_size;
   bitmask_list_init(&ecs->comp_bitmask_list, ecs->comp_bitmask_size, bitmask_buffer);
   for(uint32_t i = 0; i < config.max_entities; i++) {
     uint8_t *mask = bitmask_list_get(&ecs->comp_bitmask_list, i);
     bitmask_clear(mask, 0, bytes_per_bitmask);
   }
-  ecs->recs_component_stores = (struct component_pool*) component_pool_buffer;
+
+  //init the system mappers and systems list
+  uint8_t *system_buffer =         bitmask_buffer + bitmask_buffer_size;
+  uint8_t *system_mapper_buffer =  system_buffer + system_buffer_size;
   ecs->systems = (struct recs_system*)system_buffer;
   ecs->system_group_mappers = (struct system_group_mapper*)system_mapper_buffer;
-
   //initialize each mapper with 0 systems by default
   for(uint32_t i = 0; i < config.max_system_groups; i++) {
     ecs->system_group_mappers[i].num_systems = 0;
   }
-
   //register each system
   for(uint32_t i = 0; i < config.max_systems; i++) {
     recs_system_register(ecs, config.systems[i].func, config.systems[i].group);
   }
 
-  //set up component pools
-  unsigned char *next_buffer = system_mapper_buffer + system_mapper_buffer_size;
+
+  //init the component pool list
+  uint8_t *component_pool_buffer = system_mapper_buffer + system_mapper_buffer_size;
+  ecs->recs_component_stores = (struct component_pool*) component_pool_buffer;
+  
+
+  //set up the buffer for each component pool
+  unsigned char *next_buffer = component_pool_buffer + component_pool_buffer_size;
   for(uint32_t i = 0; i < config.max_component_types; i++) {
     RECS_ASSERT(config.components[i].comp_size > 0);
     
@@ -268,27 +286,28 @@ recs recs_copy(recs og) {
   //2. Copy the contents of the old buffer to the new one
   //3. Update all the pointers to point to addresses that lie inside the new buffer
 
-  //maybe it would be better to use indexes instead of pointers...
-  //
+  //The 3rd step is easier said than done though, since we need to set up this buffer
+  //the EXACT same way as we do in recs_init()
 
 
-  uint32_t max_entities = og->ent_man.max_entities;
-  uint32_t max_components = og->max_registered_components;
-  uint32_t max_tags = og->max_tags;
-  size_t bytes_per_bitmask = RECS_GET_BITMASK_SIZE(max_components, max_tags);
-  uint32_t max_systems = og->max_registered_systems;
-  uint32_t max_sys_groups = og->max_system_groups;
-  uint32_t max_component_types = og->max_registered_components;
-   
+  size_t bytes_per_bitmask = RECS_GET_BITMASK_SIZE(og->max_registered_components, og->max_tags);
 
-  //get sizes needed for each buffer
+  //perform shallow copy of original RECS to new instance.
+  struct recs ecs_static = *og;
+
+  //we still need to allocate the new ECS as well as update the pointers to point to the newly allocated 
+  //buffer
+
+
+  //get sizes for each dynamically sized buffer in the RECS
   size_t recs_buffer_size = sizeof(struct recs);
-  size_t entity_id_buffer_size = sizeof(recs_entity) * max_entities;
-  size_t entity_version_buffer_size = sizeof(uint32_t) * max_entities;
-  size_t component_pool_buffer_size = sizeof(struct component_pool) * max_components;
-  size_t bitmask_buffer_size = bytes_per_bitmask * max_entities;
-  size_t system_buffer_size = sizeof(struct recs_system) * max_systems;
-  size_t system_mapper_buffer_size = sizeof(struct system_group_mapper) * max_sys_groups;
+  size_t entity_id_buffer_size = sizeof(recs_entity) * ecs_static.ent_man.max_entities;
+  size_t entity_version_buffer_size = sizeof(uint32_t) * ecs_static.ent_man.max_entities;
+  size_t bitmask_buffer_size = bytes_per_bitmask * ecs_static.ent_man.max_entities;
+  size_t system_buffer_size = sizeof(struct recs_system) * ecs_static.max_registered_systems;
+  size_t system_mapper_buffer_size = sizeof(struct system_group_mapper) * ecs_static.max_system_groups;
+  size_t component_pool_buffer_size = sizeof(struct component_pool) * ecs_static.max_registered_components;
+
 
   //get size for each component_pool's buffer
   size_t final_size = 0;
@@ -296,98 +315,88 @@ recs recs_copy(recs og) {
   final_size += bitmask_buffer_size + system_buffer_size + system_mapper_buffer_size;
 
   size_t component_pool_inner_buffer_size = 0;
-  for(uint32_t i = 0; i < max_component_types; i++) {
-    component_pool_inner_buffer_size += (og->recs_component_stores + i)->component_size * (og->recs_component_stores + i)->max_components;
+  for(uint32_t i = 0; i < ecs_static.max_registered_components; i++) {
+
+    size_t comp_buffer_size = og->recs_component_stores[i].component_size * og->recs_component_stores[i].max_components;
+    size_t ent_to_comp_buffer_size = sizeof(uint32_t) * og->ent_man.max_entities;
+    size_t comp_to_ent_buffer_size = sizeof(uint32_t) * og->recs_component_stores[i].max_components;
+
+    component_pool_inner_buffer_size += comp_buffer_size + ent_to_comp_buffer_size + comp_to_ent_buffer_size;
   }
 
   final_size += component_pool_inner_buffer_size;
 
 
-  //allocate one big buffer that will store all of the ECS's dynamically allocated data.
+
+  //allocate one big buffer that will store ALL of the ECS data
   uint8_t *big_buffer = (uint8_t*)RECS_MALLOC(final_size);
   if(big_buffer == NULL) {
     return NULL;
   }
 
+  //set the returned RECS instance to the start of the buffer
   recs ecs = (recs) big_buffer;
 
+  //copy static shallow copy of ecs to our newly allocated ecs
+  *ecs = ecs_static;
+
+  //update pointers in entity manager
   uint8_t *entity_id_buffer =      big_buffer + recs_buffer_size;
   uint8_t *entity_version_buffer = entity_id_buffer + entity_id_buffer_size;
-  uint8_t *component_pool_buffer = entity_version_buffer + entity_version_buffer_size;
-  uint8_t *bitmask_buffer =        component_pool_buffer + component_pool_buffer_size;
-  uint8_t *system_buffer =         bitmask_buffer + bitmask_buffer_size;
-  uint8_t *system_mapper_buffer =  system_buffer + system_buffer_size;
+  ecs->ent_man.entity_pool = entity_id_buffer;
+  ecs->ent_man.ent_versions_list = entity_version_buffer;
 
-
-  //copy properties from OG to copy
-  ecs->max_registered_components = max_components;
-  ecs->max_tags = max_tags;
-  ecs->max_registered_systems = max_systems;
-  ecs->comp_bitmask_size = bytes_per_bitmask;
-  ecs->max_system_groups = max_sys_groups;
-
-  ecs->num_registered_systems = og->num_registered_systems;
-  ecs->system_context = og->system_context;
-
-
-  //copy entity manager
-  ecs->ent_man.max_entities = max_entities;
-  ecs->ent_man.num_active_entities = og->ent_man.num_active_entities;
-  ecs->ent_man.entity_pool = (recs_entity*)entity_id_buffer;
-  ecs->ent_man.ent_versions_list = (uint32_t*)entity_version_buffer;
+  //copy values from old entity manager to the new one
   memcpy(ecs->ent_man.entity_pool, og->ent_man.entity_pool, entity_id_buffer_size);
   memcpy(ecs->ent_man.ent_versions_list, og->ent_man.ent_versions_list, entity_version_buffer_size);
 
-  //copy systems
-  ecs->systems = (struct recs_system*)system_buffer;
-  memcpy(ecs->systems, og->systems, system_buffer_size);
-  ecs->system_group_mappers = (struct system_group_mapper*) system_mapper_buffer;
-  memcpy(ecs->system_group_mappers, og->system_group_mappers, system_mapper_buffer_size);
-  
-
-  //copy entity-component bitmasks
-  ecs->comp_bitmask_size = og->comp_bitmask_size;
-  ecs->comp_bitmask_list.bytes_per_mask = og->comp_bitmask_list.bytes_per_mask;
+  //update pointers in entity-component bitmask list
+  uint8_t *bitmask_buffer =        entity_version_buffer + entity_version_buffer_size;
   ecs->comp_bitmask_list.buffer = bitmask_buffer;
+
+  //copy from old bitmask list to new one
   memcpy(ecs->comp_bitmask_list.buffer, og->comp_bitmask_list.buffer, bitmask_buffer_size);
 
-  //copy component pool objects
-  ecs->recs_component_stores = (struct component_pool *)component_pool_buffer;
-  memcpy(ecs->recs_component_stores, og->recs_component_stores, component_pool_buffer_size);
+  //update pointers to systems and system_mappers
+  uint8_t *system_buffer =         bitmask_buffer + bitmask_buffer_size;
+  uint8_t *system_mapper_buffer =  system_buffer + system_buffer_size;
+  ecs->systems = (struct recs_system*)system_buffer;
+  ecs->system_group_mappers = (struct system_group_mapper*)system_mapper_buffer;
 
+  //copy systems and mappers from old list to new one
+  memcpy(ecs->systems, og->systems, system_buffer_size);
+  memcpy(ecs->system_group_mappers, og->system_group_mappers, system_mapper_buffer_size);
 
-  unsigned char *next_buffer = system_mapper_buffer + system_mapper_buffer_size;
+  //update the pointer to the component pool list
+  uint8_t *component_pool_buffer = system_mapper_buffer + system_mapper_buffer_size;
+  ecs->recs_component_stores = (struct component_pool*) component_pool_buffer;
+  
+  //copy the values from each of the old component pools to their respective new ones
+  uint8_t *next_buffer = component_pool_buffer + component_pool_buffer_size;
+  for(uint32_t i = 0; i < ecs->max_registered_components; i++) {
+    
+    size_t comp_buffer_size = og->recs_component_stores[i].component_size * og->recs_component_stores[i].max_components;
+    size_t ent_to_comp_buffer_size = sizeof(uint32_t) * og->ent_man.max_entities;
+    size_t comp_to_ent_buffer_size = sizeof(uint32_t) * og->recs_component_stores[i].max_components;
 
-  //copy each component pool's component data
-  for(uint32_t i = 0; i < og->max_registered_components; i++) {
-    struct component_pool *pool_copy = ecs->recs_component_stores + i;
-    struct component_pool *pool_og = og->recs_component_stores + i;
+    uint8_t *comp_buffer = next_buffer;
+    uint8_t *ent_to_comp_buffer = comp_buffer + comp_buffer_size;
+    uint8_t *comp_to_ent_buffer = ent_to_comp_buffer + ent_to_comp_buffer_size;
 
-    pool_copy->num_components = pool_og->num_components;
-    pool_copy->component_size = pool_og->component_size;
-    pool_copy->max_components = pool_og->max_components;
+    //update the values and pointers in the component pool
+    ecs->recs_component_stores[i].num_components = og->recs_component_stores[i].num_components;
+    ecs->recs_component_stores[i].max_components = og->recs_component_stores[i].max_components;
+    ecs->recs_component_stores[i].max_entities = og->recs_component_stores[i].max_entities;
+    ecs->recs_component_stores[i].component_size = og->recs_component_stores[i].component_size;
+    ecs->recs_component_stores[i].buffer = (char*) comp_buffer;
+    ecs->recs_component_stores[i].entity_to_comp = (uint32_t*)ent_to_comp_buffer;
+    ecs->recs_component_stores[i].comp_to_entity = (uint32_t*)comp_to_ent_buffer;
 
-    size_t comp_buffer_size = pool_og->component_size * pool_og->max_components;
-    size_t ent_to_comp_buffer_size = sizeof(uint32_t) * max_entities;
-    size_t comp_to_ent_buffer_size = sizeof(uint32_t) * pool_og->max_components;
+    size_t buffer_size = comp_buffer_size + ent_to_comp_buffer_size + comp_to_ent_buffer_size;
+    //copy buffer from old component pool to new one
+    memcpy(ecs->recs_component_stores[i].buffer, og->recs_component_stores[i].buffer, buffer_size);
 
-
-    //allocate all memory at once needed to store raw component data,
-    //entity to component mapper, and component to entity mapper.
-
-
-    char *comp_buffer = (char*)next_buffer;
-    char *ent_to_comp_buffer = comp_buffer + comp_buffer_size;
-    char *comp_to_ent_buffer = comp_buffer + comp_buffer_size + ent_to_comp_buffer_size;
-
-    pool_copy->buffer = comp_buffer;
-    pool_copy->comp_to_entity = (uint32_t*)comp_to_ent_buffer;
-    pool_copy->entity_to_comp = (uint32_t*) ent_to_comp_buffer;
-
-    //copy actual data from og pool to new pool
-    memcpy(pool_copy->buffer, pool_og->buffer, comp_buffer_size + ent_to_comp_buffer_size + comp_to_ent_buffer_size);
-
-    next_buffer += comp_buffer_size + ent_to_comp_buffer_size + comp_to_ent_buffer_size;
+    next_buffer += buffer_size;
   }
 
 
