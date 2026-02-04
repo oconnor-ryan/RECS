@@ -141,7 +141,7 @@ struct recs_init_config {
 
 
 //allocate and initialize a RECS instance. Returns NULL if initialization failed.
-recs recs_init(struct recs_init_config config);
+recs recs_init(const struct recs_init_config config);
 
 //performs a deep copy of the ECS and returns a pointer to the new copy, or NULL if it fails.
 recs recs_copy(recs ecs);

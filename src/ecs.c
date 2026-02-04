@@ -120,7 +120,7 @@ uint32_t recs_num_active_entities(struct recs *recs) {
 // Initialize the ECS.
 // Note that you must provide all of the component types and systems you will use for this ECS into the configuration
 // struct.
-recs recs_init(struct recs_init_config config) {
+recs recs_init(const struct recs_init_config config) {
 
 
   //RECS_ASSERT that max_comps does not overflow
