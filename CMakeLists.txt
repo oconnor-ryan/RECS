@@ -12,9 +12,8 @@ set(ECS "recs")
 
 add_library(${ECS} STATIC 
   src/ecs.c
-  src/entity_manager.c
-  src/component_pool.c
-  src/bitmask.c
+  src/entity.c
+  src/init.c
 )
 
 #-Werror was removed
