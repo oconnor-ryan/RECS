@@ -8,8 +8,16 @@ add_executable(${EXAMPLE_README}
   ex_readme.c
 )
 
-# -Werror is very annoying, especially for testing
-target_compile_options(${EXAMPLE_README} PRIVATE -fcolor-diagnostics -fansi-escape-codes -g -std=c11 -Wall -Wextra -pedantic  -Wundef)
+
+target_compile_options(${EXAMPLE_README} PRIVATE 
+  $<$<CXX_COMPILER_ID:Clang>:-fcolor-diagnostics -fansi-escape-codes> 
+  -g 
+  -std=c99
+  -Wall 
+  -Wextra 
+  -pedantic  
+  -Wundef
+)
 
 target_include_directories(${EXAMPLE_README} PUBLIC 
   ${CMAKE_SOURCE_DIR}/src
@@ -28,8 +36,15 @@ add_executable(${EXAMPLE1}
   ex1.c
 )
 
-# -Werror is very annoying, especially for testing
-target_compile_options(${EXAMPLE1} PRIVATE -fcolor-diagnostics -fansi-escape-codes -g -std=c11 -Wall -Wextra -pedantic  -Wundef)
+target_compile_options(${EXAMPLE1} PRIVATE 
+  $<$<CXX_COMPILER_ID:Clang>:-fcolor-diagnostics -fansi-escape-codes> 
+  -g 
+  -std=c99
+  -Wall 
+  -Wextra 
+  -pedantic  
+  -Wundef
+)
 
 target_include_directories(${EXAMPLE1} PUBLIC 
   ${CMAKE_SOURCE_DIR}/src
@@ -50,8 +65,15 @@ add_executable(${EXAMPLE2}
   ex2.c
 )
 
-# -Werror is very annoying, especially for testing
-target_compile_options(${EXAMPLE2} PRIVATE -fcolor-diagnostics -fansi-escape-codes -g -std=c11 -Wall -Wextra -pedantic  -Wundef)
+target_compile_options(${EXAMPLE2} PRIVATE 
+  $<$<CXX_COMPILER_ID:Clang>:-fcolor-diagnostics -fansi-escape-codes> 
+  -g 
+  -std=c99
+  -Wall 
+  -Wextra 
+  -pedantic  
+  -Wundef
+)
 
 target_include_directories(${EXAMPLE2} PUBLIC 
   ${CMAKE_SOURCE_DIR}/src
@@ -70,8 +92,15 @@ add_executable(${EXAMPLE3}
   ex3.c
 )
 
-# -Werror is very annoying, especially for testing
-target_compile_options(${EXAMPLE3} PRIVATE -fcolor-diagnostics -fansi-escape-codes -g -std=c11 -Wall -Wextra -pedantic  -Wundef)
+target_compile_options(${EXAMPLE3} PRIVATE 
+  $<$<CXX_COMPILER_ID:Clang>:-fcolor-diagnostics -fansi-escape-codes> 
+  -g 
+  -std=c99
+  -Wall 
+  -Wextra 
+  -pedantic  
+  -Wundef
+)
 
 target_include_directories(${EXAMPLE3} PUBLIC 
   ${CMAKE_SOURCE_DIR}/src

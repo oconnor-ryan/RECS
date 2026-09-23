@@ -56,7 +56,7 @@ void system_print_message(struct recs *ecs) {
     }
 
     if(n != NULL) {
-      printf("Number: %llu\n", n->num);
+      printf("Number: %llu\n", (long long unsigned int) n->num);
     }
 
     const char *has_tag_a_str = recs_entity_has_tag(ecs, e, TAG_A) ? "true" : "false";
@@ -84,7 +84,7 @@ void system_print_number_only(struct recs *ecs) {
   while(recs_ent_iter_has_next(&iter)) {
     recs_entity e = recs_ent_iter_next(ecs, &iter);
     struct number_component *n = recs_entity_get_component(ecs, RECS_ENT_ID(e), COMPONENT_NUMBER);
-    printf("Entity %d with TAG_A and TAG_B has number %llu\n", RECS_ENT_ID(e), n->num);
+    printf("Entity %d with TAG_A and TAG_B has number %llu\n", RECS_ENT_ID(e), (long long unsigned int)n->num);
   }
 }
 

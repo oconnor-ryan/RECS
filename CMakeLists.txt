@@ -6,9 +6,16 @@ set(CMAKE_BUILD_TYPE "Debug")
 
 set(CMAKE_C_STANDARD 99) # Requires C99 standard
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+
 enable_testing()
 
 set(ECS "recs")
+
+add_subdirectory(example)
+add_subdirectory(tests)
+add_subdirectory(tools)
 
 add_library(${ECS} STATIC 
   src/ecs.c
@@ -18,7 +25,15 @@ add_library(${ECS} STATIC
 
 #-Werror was removed
 #added generator expressions so that we can include Clang specific compile options
-target_compile_options(${ECS} PRIVATE $<$<CXX_COMPILER_ID:Clang>:-fcolor-diagnostics -fansi-escape-codes> -g -std=c99 -Wall -Wextra -pedantic  -Wundef)
+target_compile_options(${ECS} PRIVATE 
+  $<$<CXX_COMPILER_ID:Clang>:-fcolor-diagnostics -fansi-escape-codes> 
+  -g 
+  -std=c99
+  -Wall 
+  -Wextra 
+  -pedantic  
+  -Wundef
+)
 
 
 target_include_directories(${ECS} PRIVATE 
@@ -27,8 +42,8 @@ target_include_directories(${ECS} PRIVATE
 
 target_include_directories(${ECS} PUBLIC "include/")
 
-add_subdirectory(example)
-add_subdirectory(tests)
+
+
 
 
 

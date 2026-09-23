@@ -8,8 +8,18 @@ add_executable(${TEST_EXCLUDE}
   test_masks.c
 )
 
-# -Werror is very annoying, especially for testing
-target_compile_options(${TEST_EXCLUDE} PRIVATE -fcolor-diagnostics -fansi-escape-codes -g -std=c11 -Wall -Wextra -pedantic  -Wundef)
+
+#-Werror was removed
+#added generator expressions so that we can include Clang specific compile options
+target_compile_options(${TEST_EXCLUDE} PRIVATE 
+  $<$<CXX_COMPILER_ID:Clang>:-fcolor-diagnostics -fansi-escape-codes> 
+  -g 
+  -std=c11
+  -Wall 
+  -Wextra 
+  -pedantic  
+  -Wundef
+)
 
 target_include_directories(${TEST_EXCLUDE} PUBLIC 
   ${CMAKE_SOURCE_DIR}/src
